@@ -1,0 +1,20 @@
+:root {
+  font-family: system-ui, 'Segoe UI', 'Arial Hebrew', Arial, sans-serif;
+  line-height: 1.5;
+  color-scheme: light dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+.app-shell {
+  max-width: 960px;
+  margin-inline: auto;
+  padding: 1.5rem;
+}
