@@ -1,0 +1,24 @@
+/* Absences feature styles (DESIGN.md §8). */
+
+.te-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ab-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border-top: 1px solid var(--border, #e3e3e3);
+  padding-top: var(--space-3);
+}
+.ab-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}

@@ -6,6 +6,7 @@ import './ui/tokens.css';
 import './ui/primitives.css';
 import './features/dashboard/dashboard.css';
 import './features/timeEntry/timeEntry.css';
+import './features/absences/absences.css';
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(

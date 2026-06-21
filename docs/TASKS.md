@@ -6,7 +6,7 @@
 | **Version** | 3.0 |
 | **Date** | 21/06/2026 |
 | **Companion docs** | [SPEC.md](SPEC.md) v1.1 · [DESIGN.md](DESIGN.md) v1.0 |
-| **Progress** | 8 of 16 done · 0 partial · 135 tests passing |
+| **Progress** | 9 of 16 done · 0 partial · 138 tests passing |
 
 > 16 consolidated tasks. Related functions are grouped into one task instead of one-per-function. Each task lists what it **Covers**, links to its **Design** section, and states **Edge** cases + **DoD**. Task numbers are planning labels only — code is organized by [DESIGN.md](DESIGN.md) structure, so renumbering never requires code changes. SPEC → DESIGN → TASK.
 
@@ -100,14 +100,14 @@
   - **Deps:** T6, T4
   - **Out of scope:** the validation rules themselves (T4, done)
 
-- [ ] **T10 — Absences (UI)**
+- [x] **T10 — Absences (UI)**
   - **Goal:** report absences and manage accrual
-  - **Covers:** report-absence modal (type + range + full/partial day); accrual settings + balance display + low-balance warning
+  - **Covers:** `ReportAbsenceForm` — type (חופשה/מחלה/חג/מילואים/חל״ת) + date range + full/partial day ✅; month absences list with delete ✅; wired into DashboardPage ("🌴 דווח היעדרות") + `AbsencesSummaryCard` onReport ✅. Balance display + low-balance warning already shipped in T7 (AbsencesSummaryCard / `useAbsenceBalances` / alert).
   - **Design:** [DESIGN.md §8, §6 (absenceBalance)](DESIGN.md)
-  - **Edge:** vacation range credits each work day (UC-3); half-day sick (UC-4); warning near/below zero
-  - **DoD:** UC-3 and UC-4 work; balance updates live
+  - **Edge:** vacation range credits each work day (UC-3); partial-day sick (UC-4); end-date < start-date blocked
+  - **DoD:** `ReportAbsenceForm.test` (create / validation / delete) ✅; UC-3 & UC-4 supported; balance updates live
   - **Deps:** T6, T4
-  - **Out of scope:** —
+  - **Out of scope:** accrual *settings inputs* → T12 settings page
 
 - [ ] **T11 — Reports & export**
   - **Goal:** view, navigate, and export monthly data

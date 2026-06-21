@@ -6,6 +6,7 @@ import { useTimeEntries } from '../../app/hooks/useTimeEntries.ts';
 import { useAbsences } from '../../app/hooks/useAbsences.ts';
 import { useClock } from '../../app/hooks/useClock.ts';
 import { ManualEntryForm } from '../timeEntry/ManualEntryForm.tsx';
+import { ReportAbsenceForm } from '../absences/ReportAbsenceForm.tsx';
 import { TodayCard } from './TodayCard.tsx';
 import { MonthCard } from './MonthCard.tsx';
 import { AbsencesSummaryCard } from './AbsencesSummaryCard.tsx';
@@ -49,7 +50,8 @@ export function DashboardPage({
 
   const { entries, isLoading: entriesLoading } = useTimeEntries(month);
   const { absences, isLoading: absencesLoading } = useAbsences(month);
-  const [showForm, setShowForm] = useState(false);
+  const [showEntry, setShowEntry] = useState(false);
+  const [showAbsence, setShowAbsence] = useState(false);
 
   if (entriesLoading || absencesLoading) {
     return <p className="dashboard__loading">טוען…</p>;
@@ -60,13 +62,23 @@ export function DashboardPage({
   return (
     <div className="dashboard-page">
       <div className="dashboard__actions">
-        <Button variant="ghost" onClick={() => setShowForm((v) => !v)}>
-          {showForm ? 'סגור' : '➕ הוספה ידנית'}
+        <Button variant="ghost" onClick={() => setShowEntry((v) => !v)}>
+          {showEntry ? 'סגור' : '➕ הוספה ידנית'}
+        </Button>
+        <Button variant="ghost" onClick={() => setShowAbsence((v) => !v)}>
+          {showAbsence ? 'סגור' : '🌴 דווח היעדרות'}
         </Button>
       </div>
 
-      {showForm && (
-        <ManualEntryForm date={resolvedToday} zone={zone} onClose={() => setShowForm(false)} />
+      {showEntry && (
+        <ManualEntryForm date={resolvedToday} zone={zone} onClose={() => setShowEntry(false)} />
+      )}
+      {showAbsence && (
+        <ReportAbsenceForm
+          date={resolvedToday}
+          month={month}
+          onClose={() => setShowAbsence(false)}
+        />
       )}
 
       {empty ? (
@@ -75,7 +87,7 @@ export function DashboardPage({
         <div className="dashboard">
           <TodayCard zone={zone} today={resolvedToday} />
           <MonthCard month={month} today={resolvedToday} zone={zone} />
-          <AbsencesSummaryCard month={month} />
+          <AbsencesSummaryCard month={month} onReport={() => setShowAbsence(true)} />
         </div>
       )}
     </div>
