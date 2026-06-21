@@ -76,6 +76,15 @@ export interface Absence {
 // ----- Computed (never stored) -----
 export type MonthStatus = 'surplus' | 'deficit' | 'on_track' | 'cannot_complete';
 
+export interface MonthInput {
+  month: string; // 'YYYY-MM'
+  today: IsoDate; // for remaining/missing day math
+  zone: string; // IANA, for shift duration
+  settings: Settings;
+  entries: TimeEntry[];
+  absences: Absence[];
+}
+
 export interface MonthSummary {
   userId: ID;
   month: string; // 'YYYY-MM'

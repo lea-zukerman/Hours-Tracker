@@ -1,5 +1,14 @@
 import { DateTime } from 'luxon';
-import type { Absence, IsoDate, Minutes, MonthStatus, Settings, TimeEntry } from './types.ts';
+import type {
+  Absence,
+  IsoDate,
+  Minutes,
+  MonthInput,
+  MonthStatus,
+  MonthSummary,
+  Settings,
+  TimeEntry,
+} from './types.ts';
 import { entryWorkedMinutes, isWorkDay } from './time.ts';
 
 /**
@@ -220,4 +229,44 @@ export function requiredPerDay(balance: Minutes, remainingWorkdays: number): Min
   if (balance >= 0) return 0;
   if (remainingWorkdays <= 0) return null;
   return Math.round(-balance / remainingWorkdays);
+}
+
+/**
+ * Orchestrate the month calculation into a MonthSummary (DESIGN.md §6, §4;
+ * SPEC §3.0). Composes 1.5–1.11 — this is the single entry point the UI hooks
+ * call (3.4).
+ *
+ * The status starts from the balance (monthStatus) and is upgraded to
+ * `cannot_complete` when there's a deficit but no remaining day can close it
+ * (requiredPerDay === null) — the place where that context finally exists.
+ */
+export function buildMonthSummary(input: MonthInput): MonthSummary {
+  const { month, today, zone, settings, entries, absences } = input;
+
+  const worked = workedMonthMinutes(entries, settings, zone);
+  const paidAbsence = paidAbsenceMinutes(absences, settings, month);
+  const credited = creditedMinutes(worked, paidAbsence);
+  const quota = effectiveQuota(settings, month);
+  const balance = balanceMinutes(credited, quota);
+  const remaining = remainingWorkdays(today, month, settings, absences);
+  const required = requiredPerDay(balance, remaining);
+  const hoursToComplete = Math.max(0, -balance); // deficit magnitude; 0 when met/surplus
+
+  let status = monthStatus(balance);
+  if (status === 'deficit' && required === null) {
+    status = 'cannot_complete';
+  }
+
+  return {
+    userId: settings.userId,
+    month,
+    workedMinutes: worked,
+    creditedMinutes: credited,
+    quotaMinutes: quota,
+    balanceMinutes: balance,
+    remainingWorkdays: remaining,
+    hoursToCompleteMinutes: hoursToComplete,
+    requiredPerDayMinutes: required,
+    status,
+  };
 }
