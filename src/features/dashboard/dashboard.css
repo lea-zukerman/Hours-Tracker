@@ -1,0 +1,35 @@
+/* Dashboard feature styles (DESIGN.md §8). */
+
+.today {
+  display: flex;
+  gap: var(--space-6);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.today__big {
+  font-size: var(--fs-display);
+  font-weight: 700;
+  line-height: 1.05;
+}
+
+.today__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  flex: 1;
+  min-inline-size: 180px;
+}
+
+.today__remaining {
+  font-size: var(--fs-h1);
+  margin: 0;
+}
+.today__remaining .num {
+  font-weight: 700;
+}
+
+.today__done {
+  color: var(--positive);
+  font-weight: 600;
+}

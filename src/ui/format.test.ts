@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatDate, formatTime24, formatMinutes } from './format.ts';
+import { formatDate, formatTime24, formatMinutes, formatClock } from './format.ts';
 
 describe('formatDate', () => {
   it('renders an ISO day as DD-MM-YYYY', () => {
@@ -25,5 +25,15 @@ describe('formatMinutes', () => {
   });
   it('handles negatives (deficit)', () => {
     expect(formatMinutes(-90)).toBe('-1:30');
+  });
+});
+
+describe('formatClock', () => {
+  it('shows M:SS under an hour', () => {
+    expect(formatClock(5)).toBe('0:05');
+    expect(formatClock(65)).toBe('1:05');
+  });
+  it('shows H:MM:SS beyond an hour', () => {
+    expect(formatClock(3661)).toBe('1:01:01');
   });
 });

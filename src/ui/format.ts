@@ -27,3 +27,16 @@ export function formatMinutes(minutes: number): string {
   const m = abs % 60;
   return `${sign}${h}:${String(m).padStart(2, '0')}`;
 }
+
+/**
+ * Format a running duration in seconds as a live clock: 'M:SS' under an hour,
+ * 'H:MM:SS' beyond. For the live work-clock display.
+ */
+export function formatClock(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const ss = String(sec).padStart(2, '0');
+  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
+}

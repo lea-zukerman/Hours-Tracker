@@ -4,6 +4,7 @@ import { App } from './app/App.tsx';
 import { AppProviders } from './app/state/AppProviders.tsx';
 import './ui/tokens.css';
 import './ui/primitives.css';
+import './features/dashboard/dashboard.css';
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(
