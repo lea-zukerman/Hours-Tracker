@@ -6,7 +6,7 @@
 | **Version** | 3.0 |
 | **Date** | 21/06/2026 |
 | **Companion docs** | [SPEC.md](SPEC.md) v1.1 · [DESIGN.md](DESIGN.md) v1.0 |
-| **Progress** | 6 of 16 done · 1 partial · 119 tests passing |
+| **Progress** | 7 of 16 done · 0 partial · 127 tests passing |
 
 > 16 consolidated tasks. Related functions are grouped into one task instead of one-per-function. Each task lists what it **Covers**, links to its **Design** section, and states **Edge** cases + **DoD**. Task numbers are planning labels only — code is organized by [DESIGN.md](DESIGN.md) structure, so renumbering never requires code changes. SPEC → DESIGN → TASK.
 
@@ -73,15 +73,14 @@
 
 ## Phase B — UI (MVP)
 
-- [~] **T7 — Dashboard**
+- [x] **T7 — Dashboard**
   - **Goal:** the at-a-glance status screen
-  - **Covers:** UI primitives ✅ (`Card`, `ProgressRing`, `ProgressBar`, `Button`, `BalanceBadge`, `format`); `TodayCard` ✅; `MonthCard` ✅; **`AbsencesSummaryCard` ❌**; **empty state ❌**
+  - **Covers:** UI primitives ✅ (`Card`, `ProgressRing`, `ProgressBar`, `Button`, `BalanceBadge`, `format`); `TodayCard` ✅; `MonthCard` ✅; `AbsencesSummaryCard` ✅; `DashboardPage` + empty state ✅; wired into `App` (DevSandbox removed). Support added: `absenceDaysUsed` (domain) + `useAbsenceBalances` hook (calendar-year basis — documented assumption).
   - **Design:** [DESIGN.md §8](DESIGN.md)
-  - **Edge:** running clock live update ✅; UC-2 display ✅; no-remaining-days final state; **no-data empty state ("Start logging") — REMAINING**
-  - **DoD:** primitives + Today + Month tested ✅; **absences card + empty state pending**
+  - **Edge:** running clock live update ✅; UC-2 display ✅; no-data empty state ("Start logging" → starts the clock) ✅; no-remaining-days final state ✅
+  - **DoD:** `MonthCard.test`, `TodayCard.test`, `AbsencesSummaryCard.test`, `DashboardPage.test`, `absenceDaysUsed.test`, `primitives.test` ✅ — dashboard renders deficit/surplus/empty
   - **Deps:** T6
-  - **Out of scope:** alerts banner (T12); responsiveness/a11y (T8)
-  - **➡ Remaining:** `AbsencesSummaryCard` + empty state + wire into a dashboard page
+  - **Out of scope:** alerts banner (T12); report-absence flow (T10); full responsiveness/a11y (T8)
 
 - [ ] **T8 — Responsive & accessibility**
   - **Goal:** usable on mobile and by keyboard/screen-reader
@@ -176,6 +175,6 @@
 
 - [x] Every calculation rule (T2–T4) implemented + unit-tested.
 - [ ] Every [SPEC.md §6](SPEC.md) edge case handled or explicitly marked out of scope.
-- [ ] Dashboard correctly shows "left today / left this month"; alerts fire under defined conditions.
+- [~] Dashboard correctly shows "left today / left this month" ✅; alerts fire under defined conditions *(banner UI is T12)*.
 - [ ] CSV export and JSON backup work end-to-end.
 - [ ] *(Sync phase)* Login + same data on two devices + local→cloud migration.
