@@ -7,6 +7,7 @@ import { useAbsences } from '../../app/hooks/useAbsences.ts';
 import { useClock } from '../../app/hooks/useClock.ts';
 import { ManualEntryForm } from '../timeEntry/ManualEntryForm.tsx';
 import { ReportAbsenceForm } from '../absences/ReportAbsenceForm.tsx';
+import { AlertsBanner } from '../alerts/AlertsBanner.tsx';
 import { TodayCard } from './TodayCard.tsx';
 import { MonthCard } from './MonthCard.tsx';
 import { AbsencesSummaryCard } from './AbsencesSummaryCard.tsx';
@@ -61,6 +62,8 @@ export function DashboardPage({
 
   return (
     <div className="dashboard-page">
+      <AlertsBanner month={month} today={resolvedToday} zone={zone} />
+
       <div className="dashboard__actions">
         <Button variant="ghost" onClick={() => setShowEntry((v) => !v)}>
           {showEntry ? 'סגור' : '➕ הוספה ידנית'}

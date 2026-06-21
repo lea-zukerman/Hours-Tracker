@@ -6,7 +6,7 @@
 | **Version** | 3.0 |
 | **Date** | 21/06/2026 |
 | **Companion docs** | [SPEC.md](SPEC.md) v1.1 · [DESIGN.md](DESIGN.md) v1.0 |
-| **Progress** | 9 of 16 done · 0 partial · 138 tests passing |
+| **Progress** | 10 of 16 done · 0 partial · 141 tests passing |
 
 > 16 consolidated tasks. Related functions are grouped into one task instead of one-per-function. Each task lists what it **Covers**, links to its **Design** section, and states **Edge** cases + **DoD**. Task numbers are planning labels only — code is organized by [DESIGN.md](DESIGN.md) structure, so renumbering never requires code changes. SPEC → DESIGN → TASK.
 
@@ -118,12 +118,12 @@
   - **Deps:** T6, T5
   - **Out of scope:** PDF (phase 2)
 
-- [ ] **T12 — Settings & alerts (UI)**
+- [x] **T12 — Settings & alerts (UI)**
   - **Goal:** the settings screen and the live alerts banner
-  - **Covers:** settings page (quota/job%, target, work days, break policy, format, accruals, alert toggles + lead days); `AlertsBanner` (renders `deriveAlerts`, `role="alert"`, recompute on change)
+  - **Covers:** `SettingsPage` — quota/job%, target, work days, break policy, hours format, accruals, alert toggles + lead days ✅; `AlertsBanner` + `useAlerts` hook + `alertMessages` (renders `deriveAlerts`, `role="alert"`, recompute on change) ✅; wired in via React Router (App nav: בית / הגדרות; BrowserRouter in main).
   - **Design:** [DESIGN.md §8, §8.1](DESIGN.md)
-  - **Edge:** setting changes affect calculations live; UC-5 banner appears; deleting data clears stale alerts (§6.5.29)
-  - **DoD:** settings persist + affect math; alerts fire under defined conditions
+  - **Edge:** setting changes persist + flow into calculations; logging-reminder banner appears; empty when no alerts; toggle-off suppresses (domain `alerts.test`)
+  - **DoD:** `AlertsBanner.test`, `SettingsPage.test` ✅ — settings persist; alerts fire under defined conditions
   - **Deps:** T6, T4 (incl. `deriveAlerts`)
   - **Out of scope:** alert logic (T4)
 
@@ -175,6 +175,6 @@
 
 - [x] Every calculation rule (T2–T4) implemented + unit-tested.
 - [ ] Every [SPEC.md §6](SPEC.md) edge case handled or explicitly marked out of scope.
-- [~] Dashboard correctly shows "left today / left this month" ✅; alerts fire under defined conditions *(banner UI is T12)*.
+- [x] Dashboard correctly shows "left today / left this month"; alerts fire under defined conditions (AlertsBanner, T12).
 - [ ] CSV export and JSON backup work end-to-end.
 - [ ] *(Sync phase)* Login + same data on two devices + local→cloud migration.
