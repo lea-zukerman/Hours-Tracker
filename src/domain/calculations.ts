@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import type { Absence, Minutes, Settings, TimeEntry } from './types.ts';
+import type { Absence, Minutes, MonthStatus, Settings, TimeEntry } from './types.ts';
 import { entryWorkedMinutes, isWorkDay } from './time.ts';
 
 /**
@@ -85,4 +85,30 @@ export function paidAbsenceMinutes(
  */
 export function creditedMinutes(worked: Minutes, paidAbsence: Minutes): Minutes {
   return worked + paidAbsence;
+}
+
+/**
+ * Month balance = credited − quota (DESIGN.md §6; SPEC §3.0 line 94).
+ * Negative = deficit, positive = surplus.
+ *
+ * Each month is standalone — a surplus does NOT roll over (SPEC §6.4.22).
+ * This is structural: only the current month's credited and quota are inputs,
+ * so no prior balance can leak in.
+ */
+export function balanceMinutes(credited: Minutes, quota: Minutes): Minutes {
+  return credited - quota;
+}
+
+/**
+ * Month status derived from the balance alone (DESIGN.md §4 MonthStatus):
+ * positive → surplus, negative → deficit, exactly zero → on_track.
+ *
+ * NOTE: `cannot_complete` (a deficit with no remaining work days to close it)
+ * needs the remaining-days context and is applied a layer up, in
+ * buildMonthSummary (1.11/1.12).
+ */
+export function monthStatus(balance: Minutes): MonthStatus {
+  if (balance > 0) return 'surplus';
+  if (balance < 0) return 'deficit';
+  return 'on_track';
 }
