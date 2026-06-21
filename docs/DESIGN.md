@@ -252,8 +252,10 @@ function absenceBalance(opening: number, accrualPerMonth: number, monthsElapsed:
 
 // alerts.ts
 interface ActiveAlert { type: AlertType; params: Record<string, number | string>; }
-function deriveAlerts(summary: MonthSummary, settings: Settings, entries: TimeEntry[], today: IsoDate): ActiveAlert[];
-// covers all 5 alert types in §3.4: end_of_month, overtime, logging_reminder (§6.3.14), suspicious_outlier (>12h), cannot_complete, absence_balance_low
+interface AlertContext { summary: MonthSummary; settings: Settings; entries: TimeEntry[]; absences: Absence[]; today: IsoDate; zone: string; vacationBalanceDays: number; sickBalanceDays: number; }
+function deriveAlerts(ctx: AlertContext): ActiveAlert[];
+// covers all alert types in §3.4: end_of_month, overtime, logging_reminder (§6.3.14), suspicious_outlier (>12h), cannot_complete, absence_balance_low — each gated by settings.alertsEnabled
+// context widened beyond {summary,settings,entries,today}: zone+absences for per-day/missing-day checks; vacation/sick balances are history-dependent so the caller precomputes them via absenceBalance
 
 // validation.ts
 function validateEntry(entry: TimeEntry, zone: string): ValidationResult; // §3.2C, §6.1.3-7, §6.3.15,18

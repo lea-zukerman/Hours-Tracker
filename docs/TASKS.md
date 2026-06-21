@@ -3,489 +3,178 @@
 
 | | |
 |---|---|
-| **Version** | 2.2 |
-| **Date** | 18/06/2026 |
+| **Version** | 3.0 |
+| **Date** | 21/06/2026 |
 | **Companion docs** | [SPEC.md](SPEC.md) v1.1 · [DESIGN.md](DESIGN.md) v1.0 |
+| **Progress** | 6 of 16 done · 1 partial · 119 tests passing |
 
-> Executable breakdown of [DESIGN.md](DESIGN.md). Work top-to-bottom. Each **domain** task carries the full 7-field block; **UI / setup** tasks use a shortened block (no In/Out — a component has no single return value).
+> 16 consolidated tasks. Related functions are grouped into one task instead of one-per-function. Each task lists what it **Covers**, links to its **Design** section, and states **Edge** cases + **DoD**. Task numbers are planning labels only — code is organized by [DESIGN.md](DESIGN.md) structure, so renumbering never requires code changes. SPEC → DESIGN → TASK.
 
-**Task fields:** `Goal` what it achieves · `Design` the technical contract it implements (DESIGN) · `In`/`Out` input & output types · `Edge` edge cases & errors to cover · `DoD` acceptance criterion · `Deps` prerequisites · `Out of scope` what NOT to do here.
-
-> **Traceability:** each task links to its **DESIGN** section (its direct parent). The product requirement is reached transitively — DESIGN already links to the relevant SPEC section. SPEC → DESIGN → TASK.
-
----
-
-## Milestone 0 — Project Setup  *(shortened blocks)*
-
-- [ ] **0.1 Scaffold the project**
-  - **Goal:** Vite + React + TypeScript app skeleton
-  - **Design:** [DESIGN.md §2](DESIGN.md)
-  - **DoD:** `npm run dev` serves a blank app; `tsconfig` has `"strict": true`
-  - **Deps:** —
-  - **Out of scope:** any feature code, styling
-- [ ] **0.2 Install core dependencies**
-  - **Goal:** add `react-router-dom`, `luxon` (+types), `@tanstack/react-query`
-  - **Design:** [DESIGN.md §2](DESIGN.md)
-  - **DoD:** all imports resolve; app builds
-  - **Deps:** 0.1
-  - **Out of scope:** Supabase client (Milestone 9)
-- [ ] **0.3 Set up tooling**
-  - **Goal:** ESLint + Prettier; Vitest + Testing Library + jsdom
-  - **Design:** [DESIGN.md §2, §10](DESIGN.md)
-  - **DoD:** `npm run test` runs (0 tests OK); `npm run lint` passes
-  - **Deps:** 0.1
-  - **Out of scope:** CI pipeline
-- [ ] **0.4 Folder skeleton**
-  - **Goal:** create `domain/ data/ app/ features/ ui/ i18n/`
-  - **Design:** [DESIGN.md §3](DESIGN.md)
-  - **DoD:** structure exists; `i18n/he.ts` exports an empty strings object
-  - **Deps:** 0.1
-  - **Out of scope:** filling the folders
-- [ ] **0.5 RTL + Hebrew shell**
-  - **Goal:** `dir="rtl"`, `lang="he"`; base 24h / DD-MM-YYYY format helpers
-  - **Design:** [DESIGN.md §8.1](DESIGN.md)
-  - **DoD:** app renders RTL
-  - **Deps:** 0.1
-  - **Out of scope:** full i18n of all strings
+**Fields:** `Goal` · `Covers` the functions/items inside · `Design` the contract · `Edge` cases & errors to test · `DoD` acceptance · `Deps` · `Out of scope`. **Status:** `[x]` done · `[~]` partial · `[ ]` todo.
 
 ---
 
-## Milestone 1 — Domain Core  *(full 7-field blocks)*
+## Phase A — Foundation
 
-> Pure functions only. No React, no storage. Every task ships with its tests. · **Design:** [DESIGN.md §6](DESIGN.md)
-
-- [ ] **1.1 Core types**
-  - **Goal:** implement `domain/types.ts` (the data model)
-  - **Design:** [DESIGN.md §4](DESIGN.md)
-  - **In:** —
-  - **Out:** exported TS types (User, Settings, Shift, TimeEntry, Absence, MonthSummary, AlertType…)
-  - **Edge:** `Shift.end: null` (running clock); optional `manualMinutes`, `partialMinutes`
-  - **DoD:** compiles under strict; mirrors [DESIGN.md §4](DESIGN.md)
+- [x] **T1 — Project setup**
+  - **Goal:** scaffold a working, RTL React + TypeScript app with tooling
+  - **Covers:** Vite + React + TS (strict); `react-router-dom`, `luxon`, `@tanstack/react-query`; ESLint + Prettier; Vitest + Testing Library + jsdom; folder skeleton (`domain/ data/ app/ features/ ui/ i18n/`); `dir="rtl"` + `lang="he"` shell + date/time format helpers
+  - **Design:** [DESIGN.md §2, §3, §8.1](DESIGN.md)
+  - **DoD:** `npm run dev` serves an RTL app; `npm run test` + `npm run lint` pass ✅
   - **Deps:** —
-  - **Out of scope:** any logic — types only
+  - **Out of scope:** Supabase client (Phase C)
 
-- [ ] **1.2 `netShiftMinutes`**
-  - **Goal:** duration of one shift, computed from UTC instants via Luxon
-  - **Design:** [DESIGN.md §6 (time.ts)](DESIGN.md)
-  - **In:** `(shift: Shift, zone: string)`
-  - **Out:** `Minutes`
-  - **Edge:** midnight crossing; DST 23h/25h day; out = in → 0; open shift (`end: null`); **different time zone / travel** — same UTC instants yield the same duration (§6.1.6)
-  - **DoD:** named tests pass for every edge above
-  - **Deps:** 1.1
-  - **Out of scope:** breaks, auto-break, multi-shift summation
+- [x] **T2 — Domain: types + time math**
+  - **Goal:** the data model and per-day time calculations (pure)
+  - **Covers:** `types.ts` (all model types); `netShiftMinutes`; `autoBreakMinutes`; `entryWorkedMinutes`
+  - **Design:** [DESIGN.md §4, §6 (time.ts)](DESIGN.md)
+  - **Edge:** `Shift.end: null` running clock; midnight crossing; DST 23h/25h; out=in→0; **timezone/travel (same UTC instants → same duration)**; auto-break disabled / under / over threshold; single shift; multiple shifts; manual-only entry; break + auto-break deduction
+  - **DoD:** one named test per edge — `time.test.ts`, `entryWorkedMinutes.test.ts` ✅
+  - **Deps:** T1
+  - **Out of scope:** month aggregation (T3)
 
-- [ ] **1.3 `autoBreakMinutes`**
-  - **Goal:** compute auto-deducted break for a day's presence
-  - **Design:** [DESIGN.md §6 (time.ts)](DESIGN.md)
-  - **In:** `(presenceMinutes: Minutes, settings: Settings)`
-  - **Out:** `Minutes` (0 when disabled)
-  - **Edge:** disabled; presence under threshold; presence over threshold
-  - **DoD:** 3 tests pass
-  - **Deps:** 1.1
-  - **Out of scope:** manual breaks (already on the entry)
-
-- [ ] **1.4 `entryWorkedMinutes`**
-  - **Goal:** net worked minutes for one day's entry
-  - **Design:** [DESIGN.md §6 (time.ts)](DESIGN.md)
-  - **In:** `(entry: TimeEntry, settings: Settings, zone: string)`
-  - **Out:** `Minutes`
-  - **Edge:** single shift; multiple shifts; manual-only entry; break + auto-break deduction
-  - **DoD:** tests for all four cases
-  - **Deps:** 1.2, 1.3
-  - **Out of scope:** month aggregation
-
-- [ ] **1.5 `workedMonthMinutes`**
-  - **Goal:** sum of worked minutes across a month's entries
-  - **Design:** [DESIGN.md §6 (calculations.ts)](DESIGN.md)
-  - **In:** `(entries: TimeEntry[], zone: string)`
-  - **Out:** `Minutes`
-  - **Edge:** empty month; mixed manual + shift entries
-  - **DoD:** tests pass
-  - **Deps:** 1.4
-  - **Out of scope:** absences, quota
-
-- [ ] **1.6 `effectiveQuota`**
-  - **Goal:** monthly quota adjusted for job % and mid-month change
-  - **Design:** [DESIGN.md §6 (calculations.ts)](DESIGN.md)
-  - **In:** `(settings: Settings, month: string)`
-  - **Out:** `Minutes`
-  - **Edge:** full-time; part-time %; mid-month % change (pro-rata); **quota = 0 (no divide-by-zero)**
-  - **DoD:** tests for all four
-  - **Deps:** 1.1
-  - **Out of scope:** balance computation
-
-- [ ] **1.7 `paidAbsenceMinutes` + `creditedMinutes`**
-  - **Goal:** credit paid absences at the daily target; add to worked without double-count
-  - **Design:** [DESIGN.md §6 (calculations.ts)](DESIGN.md)
-  - **In:** `(absences, settings, month)` → minutes; `(worked, paidAbsence)` → credited
-  - **Out:** `Minutes`
-  - **Edge:** full-day absence; **partial day + work same day**; holiday credit; unpaid (no credit)
-  - **DoD:** tests for all four
-  - **Deps:** 1.1
-  - **Out of scope:** accrual balance (1.13)
-
-- [ ] **1.8 `balanceMinutes` + status**
-  - **Goal:** balance = credited − quota; derive month status
-  - **Design:** [DESIGN.md §6 (calculations.ts), §4 (MonthStatus)](DESIGN.md)
-  - **In:** `(credited: Minutes, quota: Minutes)`
-  - **Out:** `Minutes` + `MonthStatus`
-  - **Edge:** surplus; deficit; exactly zero; **full-month absence → balance 0**; **surplus does NOT roll over** — each month computed standalone (§6.4.22)
-  - **DoD:** tests for all four
-  - **Deps:** 1.1
-  - **Out of scope:** required-per-day, forecast
-
-- [ ] **1.9 `remainingWorkdays`**
-  - **Goal:** count Sun–Thu from today to month-end minus planned absences
-  - **Design:** [DESIGN.md §6 (calculations.ts)](DESIGN.md)
-  - **In:** `(today: IsoDate, month, settings, absences)`
-  - **Out:** `number`
-  - **Edge:** mid-month; Feb 28/29; leap year; month edges on a weekend
-  - **DoD:** tests for all four
-  - **Deps:** 1.1
-  - **Out of scope:** required-per-day math
-
-- [ ] **1.10 `missingWorkdays`**
-  - **Goal:** past work days with no entry and no absence → "missing"
-  - **Design:** [DESIGN.md §6 (calculations.ts)](DESIGN.md)
-  - **In:** `(today, month, settings, entries, absences)`
-  - **Out:** `IsoDate[]`
-  - **Edge:** a missing day; a covered day; a day with an absence (not missing); future day (not missing)
-  - **DoD:** tests for all four
-  - **Deps:** 1.1
-  - **Out of scope:** producing the alert (8.2)
-
-- [ ] **1.11 `requiredPerDay`**
-  - **Goal:** hours-to-complete ÷ remaining work days
-  - **Design:** [DESIGN.md §6 (calculations.ts)](DESIGN.md)
-  - **In:** `(balance: Minutes, remainingWorkdays: number)`
-  - **Out:** `Minutes | null`
-  - **Edge:** normal; **0 days + deficit → null (cannot_complete)**; surplus → 0
-  - **DoD:** tests for all three
-  - **Deps:** 1.8, 1.9
-  - **Out of scope:** —
-
-- [ ] **1.12 `buildMonthSummary`**
-  - **Goal:** orchestrate 1.5–1.11 into a `MonthSummary`
+- [x] **T3 — Domain: month calculations & summary**
+  - **Goal:** roll a month up into a `MonthSummary` (pure)
+  - **Covers:** `workedMonthMinutes`, `paidAbsenceMinutes`, `creditedMinutes`, `balanceMinutes` + status, `effectiveQuota`, `remainingWorkdays`, `missingWorkdays`, `requiredPerDay`, `buildMonthSummary`
   - **Design:** [DESIGN.md §6 (calculations.ts), §4 (MonthSummary)](DESIGN.md)
-  - **In:** `(input: MonthInput)` (entries, absences, settings, today)
-  - **Out:** `MonthSummary`
-  - **Edge:** reproduce UC-2 numbers (143:20 / 182:00, deficit 38:40, 6 days, ≈6:27/day)
-  - **DoD:** integration test matches UC-2 exactly
-  - **Deps:** 1.5–1.11
-  - **Out of scope:** alerts derivation
+  - **Edge:** empty month; mixed manual+shift; **quota=0 (no ÷0)**; part-time %; mid-month % pro-rata; full-day absence; **partial-day absence + work (no double-count)**; holiday credit; **unpaid (no credit)**; surplus / deficit / exactly zero; **full-month absence → balance 0**; **surplus does NOT roll over**; Feb 28/29; leap; month-edge weekend; missing / covered / absence / future days; **0 days + deficit → cannot_complete**; surplus → 0
+  - **DoD:** UC-2 integration test (143:20 / 182:00, deficit 38:40, 6 days, ≈6:27/day) + per-edge tests ✅ (`buildMonthSummary`, `balance`, `remainingWorkdays`, `requiredPerDay`, `missingWorkdays`, `calculations`)
+  - **Deps:** T2
+  - **Out of scope:** alerts (T4)
 
-- [ ] **1.13 `absenceBalance`**
-  - **Goal:** accrued balance = opening + accrual×months − used
-  - **Design:** [DESIGN.md §6 (absences.ts)](DESIGN.md)
-  - **In:** `(opening, accrualPerMonth, monthsElapsed, used)`
-  - **Out:** `number` (days)
-  - **Edge:** accrual over months; **usage beyond balance → negative + flag**; zero accrual
-  - **DoD:** tests for all three
-  - **Deps:** 1.1
-  - **Out of scope:** the low-balance alert (8.2)
+- [x] **T4 — Domain: absences, alerts & validation**
+  - **Goal:** accrual balance, alert derivation, and entry validation (pure)
+  - **Covers:** `absenceBalance` ✅ · `validateEntry` ✅ · `deriveAlerts` ✅ (`alerts.ts` — `AlertContext` widened beyond the DESIGN signature; see in-file NOTE)
+  - **Design:** [DESIGN.md §6 (absences.ts, alerts.ts, validation.ts)](DESIGN.md)
+  - **Edge:** accrual over months / usage beyond balance → negative + flag / zero accrual ✅; validation: out<in, break>presence, out with no in, invalid input, overlap, future worked-hours ✅; alerts: all types (end_of_month, overtime day+month, logging_reminder via `missingWorkdays`, suspicious_outlier >12h, cannot_complete, absence_balance_low) + `alertsEnabled` toggle-off ✅
+  - **DoD:** `absenceBalance.test`, `absenceCredit.test`, `validation.test`, `alerts.test` (9 tests) ✅
+  - **Deps:** T3
+  - **Out of scope:** UI rendering (T9, T12)
 
-- [ ] **1.14 `validateEntry`**
-  - **Goal:** validate a time entry against all input rules
-  - **Design:** [DESIGN.md §6 (validation.ts)](DESIGN.md)
-  - **In:** `(entry: TimeEntry, zone: string)`
-  - **Out:** `ValidationResult`
-  - **Edge:** out < in; break > presence; **clock-out with no clock-in**; invalid input (25:00, negatives, text); overlapping shifts; future worked-hours blocked
-  - **DoD:** one named test per case
-  - **Deps:** 1.1
-  - **Out of scope:** UI rendering of errors (5.3)
-
----
-
-## Milestone 2 — Data Layer  *(full 7-field blocks)*
-
-> **Design:** [DESIGN.md §5](DESIGN.md)
-
-- [ ] **2.1 `Repository` interface**
-  - **Goal:** define the storage contract exactly as [DESIGN.md §5](DESIGN.md)
-  - **Design:** [DESIGN.md §5](DESIGN.md)
-  - **In:** —
-  - **Out:** `Repository` + `DatasetSnapshot` interfaces (all methods `async`)
-  - **Edge:** `getUser` may return null; range queries
-  - **DoD:** compiles
-  - **Deps:** 1.1
-  - **Out of scope:** any implementation
-
-- [ ] **2.2 `serialization.ts`**
-  - **Goal:** (de)serialize the dataset with a `schemaVersion` + migration hook
-  - **Design:** [DESIGN.md §5, §3 (serialization.ts)](DESIGN.md)
-  - **In:** `DatasetSnapshot` ⇄ JSON string
-  - **Out:** parsed snapshot / serialized string
-  - **Edge:** round-trip equality; older `schemaVersion` triggers a migration
-  - **DoD:** round-trip + migration tests pass
-  - **Deps:** 2.1
-  - **Out of scope:** the storage backend itself
-
-- [ ] **2.3 `LocalStorageRepository`**
-  - **Goal:** implement `Repository` over namespaced LocalStorage keys
+- [x] **T5 — Data layer**
+  - **Goal:** storage behind one interface, local-first
+  - **Covers:** `Repository` + `DatasetSnapshot`; `serialization.ts` (schemaVersion + migration); `LocalStorageRepository` (async, namespaced, **upsert merges by date**); two-tab `storage` sync; `backup.ts` (export/import all)
   - **Design:** [DESIGN.md §5, §4 (design notes)](DESIGN.md)
-  - **In:** `Repository` method calls
-  - **Out:** `Promise`-wrapped results
-  - **Edge:** range filtering in memory; **`upsertEntry` merges by date (one entry/day)** — two clock-ins on one date land in one entry's `shifts[]`
-  - **DoD:** round-trip tests + the merge-by-date test pass
-  - **Deps:** 2.1, 2.2
-  - **Out of scope:** Supabase, cross-tab sync (2.4)
+  - **Edge:** `getUser` may return null; range filtering; **merge by date** — two clock-ins on one date → one entry's `shifts[]` (§6.3.19); two-tab consistency (§6.5.27); export→import round-trip + malformed import rejected; migration on version bump
+  - **DoD:** `LocalStorageRepository.test`, `serialization.test`, `backup.test` ✅
+  - **Deps:** T2
+  - **Out of scope:** Supabase repo (T15)
 
-- [ ] **2.4 Two-tab consistency**
-  - **Goal:** keep two open tabs consistent via the `storage` event
-  - **Design:** [DESIGN.md §5 (LocalStorageRepository)](DESIGN.md)
-  - **In:** browser `storage` event
-  - **Out:** invalidated/refreshed cached reads
-  - **Edge:** a write in tab A reflects in tab B
-  - **DoD:** simulated `storage` event test passes
-  - **Deps:** 2.3
-  - **Out of scope:** real-time server sync (Milestone 9)
-
-- [ ] **2.5 `backup.ts`**
-  - **Goal:** export/import the whole dataset as JSON
-  - **Design:** [DESIGN.md §5 (exportAll/importAll), §3 (backup.ts)](DESIGN.md)
-  - **In:** `exportAll()` → snapshot; `importAll(snapshot)` → void
-  - **Out:** `DatasetSnapshot` / restored state
-  - **Edge:** export→import yields an identical dataset; malformed import rejected
-  - **DoD:** round-trip test passes
-  - **Deps:** 2.3
-  - **Out of scope:** the backup UI (7.4)
+- [x] **T6 — Hooks & state wiring**
+  - **Goal:** connect UI to domain + repository via React Query
+  - **Covers:** Query provider + repository context (injectable); `useSettings` (defaults 182h/8:36/Sun–Thu); `useTimeEntries` + `useAbsences` (mutate + invalidate); `useMonthSummary`; `useClock` (1s ticker, persist on start/stop, midnight split)
+  - **Design:** [DESIGN.md §7](DESIGN.md)
+  - **Edge:** write invalidates the month query → immediate recompute (§6.3.17); ticker doesn't write per tick; reads defaults on first run
+  - **DoD:** `useSettings.test`, `useTimeEntries.test`, `useMonthSummary.test`, `useClock.test`, `RepositoryContext.test` ✅
+  - **Deps:** T3, T5
+  - **Out of scope:** visual components (Phase B)
 
 ---
 
-## Milestone 3 — Hooks & State Wiring  *(shortened blocks)*
+## Phase B — UI (MVP)
 
-> **Design:** [DESIGN.md §7](DESIGN.md)
+- [~] **T7 — Dashboard**
+  - **Goal:** the at-a-glance status screen
+  - **Covers:** UI primitives ✅ (`Card`, `ProgressRing`, `ProgressBar`, `Button`, `BalanceBadge`, `format`); `TodayCard` ✅; `MonthCard` ✅; **`AbsencesSummaryCard` ❌**; **empty state ❌**
+  - **Design:** [DESIGN.md §8](DESIGN.md)
+  - **Edge:** running clock live update ✅; UC-2 display ✅; no-remaining-days final state; **no-data empty state ("Start logging") — REMAINING**
+  - **DoD:** primitives + Today + Month tested ✅; **absences card + empty state pending**
+  - **Deps:** T6
+  - **Out of scope:** alerts banner (T12); responsiveness/a11y (T8)
+  - **➡ Remaining:** `AbsencesSummaryCard` + empty state + wire into a dashboard page
 
-- [ ] **3.1 React Query provider + repository context**
-  - **Goal:** inject one `Repository` instance app-wide
-  - **Design:** [DESIGN.md §7, §9.4](DESIGN.md)
-  - **DoD:** swapping the injected repo needs no component change
-  - **Deps:** 2.1
-  - **Out of scope:** the Supabase repo
-- [ ] **3.2 `useSettings`**
-  - **Goal:** read/write settings with defaults (182h, 8:36, Sun–Thu)
-  - **Design:** [DESIGN.md §7](DESIGN.md)
-  - **DoD:** reads defaults on first run
-  - **Deps:** 3.1, 1.1
-  - **Out of scope:** the settings UI (8.1)
-- [ ] **3.3 `useTimeEntries(month)` + `useAbsences(month)`**
-  - **Goal:** list + mutate (upsert/delete) with cache invalidation
-  - **Design:** [DESIGN.md §7](DESIGN.md)
-  - **DoD:** a write invalidates the month query
-  - **Deps:** 3.1
-  - **Out of scope:** summary computation (3.4)
-- [ ] **3.4 `useMonthSummary(month)`**
-  - **Goal:** compose entries+absences through `buildMonthSummary`
-  - **Design:** [DESIGN.md §7](DESIGN.md)
-  - **DoD:** edit/delete an entry → summary recomputes immediately
-  - **Deps:** 1.12, 3.3
-  - **Out of scope:** rendering
-- [ ] **3.5 `useClock`**
-  - **Goal:** 1s UI ticker; persist on Start (open shift), finalize on Stop; midnight split/flag
-  - **Design:** [DESIGN.md §7](DESIGN.md)
-  - **DoD:** ticker doesn't write per tick; entry persists on start/stop
-  - **Deps:** 3.3
-  - **Out of scope:** clock UI (5.1)
-
----
-
-## Milestone 4 — Dashboard  *(shortened blocks)*
-
-> **Design:** [DESIGN.md §8](DESIGN.md)
-
-- [ ] **4.1 UI primitives** — `Card`, `ProgressRing`, `ProgressBar`, `Button`, `BalanceBadge`
-  - **Goal:** reusable presentational components
+- [ ] **T8 — Responsive & accessibility**
+  - **Goal:** usable on mobile and by keyboard/screen-reader
+  - **Covers:** fluid layout, cards stack < ~640px, usable to 320px, tap targets ≥44px; keyboard nav + visible focus + tab order; ARIA labels on icon buttons; `role="alert"`; contrast
   - **Design:** [DESIGN.md §8.1](DESIGN.md)
-  - **DoD:** render in isolation; RTL-safe; visible focus ring (keyboard)
-  - **Deps:** 0.5
-  - **Out of scope:** business logic
-- [ ] **4.2 `TodayCard`**
-  - **Goal:** worked-today, remaining-to-target, ring, Start/Stop button
-  - **Design:** [DESIGN.md §8](DESIGN.md)
-  - **DoD:** shows live time while running; "X left for today"
-  - **Deps:** 3.5, 4.1
-  - **Out of scope:** manual entry form
-- [ ] **4.3 `MonthCard`**
-  - **Goal:** worked/quota, %, balance, forecast, required-per-day, days-left
-  - **Design:** [DESIGN.md §8](DESIGN.md)
-  - **DoD:** reproduces the UC-2 display
-  - **Deps:** 3.4
-  - **Out of scope:** history navigation
-- [ ] **4.4 `AbsencesSummaryCard`**
-  - **Goal:** used this month + remaining accrued balance + quick link
-  - **Design:** [DESIGN.md §8](DESIGN.md)
-  - **DoD:** shows vacation/sick balance
-  - **Deps:** 1.13, 4.1
-  - **Out of scope:** the report-absence flow (6.1)
-- [ ] **4.5 Empty state**
-  - **Goal:** first load with no data → "Start logging" CTA
-  - **Design:** [DESIGN.md §8](DESIGN.md)
-  - **DoD:** no-data render shows the CTA
-  - **Deps:** 4.2
-  - **Out of scope:** —
-- [ ] **4.6 Responsive layout**
-  - **Goal:** desktop-primary, fluid layout; cards stack to one column below ~640px; usable down to 320px
-  - **Design:** [DESIGN.md §8.1](DESIGN.md)
-  - **DoD:** no horizontal scroll at 320px; tap targets ≥ 44px; verified at 320 / 768 / 1280
-  - **Deps:** 4.1
-  - **Out of scope:** native app (web only)
-- [ ] **4.7 Accessibility pass**
-  - **Goal:** keyboard navigation, ARIA, and contrast across the app
-  - **Design:** [DESIGN.md §8.1](DESIGN.md)
-  - **DoD:** every action keyboard-reachable with visible focus + logical tab order; icon-only buttons have `aria-label`; alerts use `role="alert"`; standard contrast ratios
-  - **Deps:** 4.1, 8.3
+  - **Edge:** no horizontal scroll at 320px; every action keyboard-reachable
+  - **DoD:** verified at 320 / 768 / 1280; keyboard-only walkthrough works
+  - **Deps:** T7
   - **Out of scope:** full WCAG AA audit (post-MVP)
 
----
+- [ ] **T9 — Time entry**
+  - **Goal:** log time via clock or manual entry
+  - **Covers:** live clock (Start/Stop + Pause/Resume accumulating break); manual form (date + in/out + break, add/remove **multiple shifts**, or total-hours mode); inline validation (wires `validateEntry`, Hebrew messages); edit/delete
+  - **Design:** [DESIGN.md §7, §8](DESIGN.md)
+  - **Edge:** pause adds to break; multi-shift day; each validation case shows a message; delete → dashboard updates
+  - **DoD:** create/edit/delete a multi-shift day end-to-end
+  - **Deps:** T6, T4
+  - **Out of scope:** the validation rules themselves (T4, done)
 
-## Milestone 5 — Time Entry  *(shortened blocks)*
-
-> **Design:** [DESIGN.md §7, §8](DESIGN.md)
-
-- [ ] **5.1 Live clock controls**
-  - **Goal:** Start/Stop + Pause/Resume accumulating break time
-  - **Design:** [DESIGN.md §7 (useClock), §8](DESIGN.md)
-  - **DoD:** pause adds to breakMinutes; net excludes breaks
-  - **Deps:** 3.5
-  - **Out of scope:** manual entry
-- [ ] **5.2 Manual entry form**
-  - **Goal:** date + in/out + break; add/remove multiple shifts; or total-hours mode
-  - **Design:** [DESIGN.md §8, §4 (TimeEntry/Shift)](DESIGN.md)
-  - **DoD:** create/edit a multi-shift day; total-hours mode works
-  - **Deps:** 1.4
-  - **Out of scope:** validation messages (5.3)
-- [ ] **5.3 Inline validation**
-  - **Goal:** wire `validateEntry`; block/warn with Hebrew messages
-  - **Design:** [DESIGN.md §6 (validation.ts), §8](DESIGN.md)
-  - **DoD:** each validation case surfaces a clear message
-  - **Deps:** 1.14
-  - **Out of scope:** the validation rules themselves (1.14)
-- [ ] **5.4 Edit/Delete**
-  - **Goal:** every entry editable/deletable; month recalculates immediately
-  - **Design:** [DESIGN.md §7](DESIGN.md)
-  - **DoD:** delete → dashboard updates
-  - **Deps:** 3.3
+- [ ] **T10 — Absences (UI)**
+  - **Goal:** report absences and manage accrual
+  - **Covers:** report-absence modal (type + range + full/partial day); accrual settings + balance display + low-balance warning
+  - **Design:** [DESIGN.md §8, §6 (absenceBalance)](DESIGN.md)
+  - **Edge:** vacation range credits each work day (UC-3); half-day sick (UC-4); warning near/below zero
+  - **DoD:** UC-3 and UC-4 work; balance updates live
+  - **Deps:** T6, T4
   - **Out of scope:** —
 
----
-
-## Milestone 6 — Absences  *(shortened blocks)*
-
-> **Design:** [DESIGN.md §6, §8](DESIGN.md)
-
-- [ ] **6.1 Report-absence modal**
-  - **Goal:** type + date range + full/partial day
-  - **Design:** [DESIGN.md §8, §4 (Absence)](DESIGN.md)
-  - **DoD:** vacation range credits each work day; half-day sick works
-  - **Deps:** 1.7
-  - **Out of scope:** accrual settings (6.2)
-- [ ] **6.2 Accrual settings + balance display**
-  - **Goal:** accrual/month, opening balance, low-balance warning
-  - **Design:** [DESIGN.md §6 (absenceBalance), §8](DESIGN.md)
-  - **DoD:** balance updates; warning near/below zero
-  - **Deps:** 1.13
-  - **Out of scope:** —
-
----
-
-## Milestone 7 — Reports & Export  *(shortened blocks)*
-
-> **Design:** [DESIGN.md §8](DESIGN.md)
-
-- [ ] **7.1 Month table**
-  - **Goal:** day-by-day rows (date, in, out, break, net, absence, note) + summary row
-  - **Design:** [DESIGN.md §8 (ReportsPage)](DESIGN.md)
-  - **DoD:** matches a month's data; RTL table
-  - **Deps:** 3.4
-  - **Out of scope:** export
-- [ ] **7.2 Month navigation / history**
-  - **Goal:** move between months, view archive
-  - **Design:** [DESIGN.md §8 (MonthNavigator)](DESIGN.md)
-  - **DoD:** navigating months reloads summaries
-  - **Deps:** 7.1
-  - **Out of scope:** —
-- [ ] **7.3 CSV export**
-  - **Goal:** month export incl. summary (worked/credited/quota/balance)
-  - **Design:** [DESIGN.md §8 (ExportCsvButton)](DESIGN.md)
-  - **DoD:** CSV opens with Hebrew (UTF-8 BOM)
-  - **Deps:** 7.1
+- [ ] **T11 — Reports & export**
+  - **Goal:** view, navigate, and export monthly data
+  - **Covers:** month table (day-by-day: date/in/out/break/net/absence/note + summary row); month navigation / history; CSV export (incl. summary); JSON backup/restore UI + browser-cleanup warning
+  - **Design:** [DESIGN.md §8, §5 (backup)](DESIGN.md)
+  - **Edge:** CSV opens with Hebrew (UTF-8 BOM); export→import restores state (§6.5.28)
+  - **DoD:** UC-7 (CSV + JSON backup) works end-to-end
+  - **Deps:** T6, T5
   - **Out of scope:** PDF (phase 2)
-- [ ] **7.4 JSON backup/restore UI**
-  - **Goal:** wire `exportAll`/`importAll` + browser-cleanup warning
-  - **Design:** [DESIGN.md §5 (backup), §8](DESIGN.md)
-  - **DoD:** export then import restores state
-  - **Deps:** 2.5
-  - **Out of scope:** cloud backup (Milestone 9)
 
----
-
-## Milestone 8 — Settings & Alerts
-
-> **Design:** [DESIGN.md §6, §8](DESIGN.md)
-
-- [ ] **8.1 Settings page**  *(shortened)*
-  - **Goal:** quota/job%, daily target, work days, break policy, hours format, accruals, alert toggles + lead days
-  - **Design:** [DESIGN.md §8 (SettingsPage), §4 (Settings)](DESIGN.md)
-  - **DoD:** changes persist and affect calculations live
-  - **Deps:** 3.2
-  - **Out of scope:** the alert logic (8.2)
-
-- [ ] **8.2 `deriveAlerts`**  *(full 7-field — pure domain)*
-  - **Goal:** derive active alerts from the month state
-  - **Design:** [DESIGN.md §6 (alerts.ts)](DESIGN.md)
-  - **In:** `(summary: MonthSummary, settings, entries, today: IsoDate)`
-  - **Out:** `ActiveAlert[]`
-  - **Edge:** end_of_month (≤ leadDays + deficit); overtime (day > target / month > quota); logging_reminder (uses `missingWorkdays`); suspicious_outlier (day > 12h); cannot_complete; absence_balance_low — and respect each toggle in `alertsEnabled`
-  - **DoD:** one named test per alert type + a toggle-off test
-  - **Deps:** 1.10, 1.12
-  - **Out of scope:** rendering (8.3)
-
-- [ ] **8.3 `AlertsBanner`**  *(shortened)*
-  - **Goal:** render `deriveAlerts` output; `role="alert"`; recompute on data change
+- [ ] **T12 — Settings & alerts (UI)**
+  - **Goal:** the settings screen and the live alerts banner
+  - **Covers:** settings page (quota/job%, target, work days, break policy, format, accruals, alert toggles + lead days); `AlertsBanner` (renders `deriveAlerts`, `role="alert"`, recompute on change)
   - **Design:** [DESIGN.md §8, §8.1](DESIGN.md)
-  - **DoD:** UC-5 banner appears; deleting data clears stale alerts
-  - **Deps:** 8.2, 3.4
-  - **Out of scope:** alert logic (8.2)
+  - **Edge:** setting changes affect calculations live; UC-5 banner appears; deleting data clears stale alerts (§6.5.29)
+  - **DoD:** settings persist + affect math; alerts fire under defined conditions
+  - **Deps:** T6, T4 (incl. `deriveAlerts`)
+  - **Out of scope:** alert logic (T4)
 
 ---
 
-## Milestone 9 — Sync Phase (Supabase) — *post-MVP*
+## Phase C — Sync (Supabase) — *post-MVP*
 
-> Only after the local MVP is solid. Nothing above changes except adding one repository + auth. · **Design:** [DESIGN.md §9](DESIGN.md)
+> Only after the local MVP is solid. Nothing in Phases A–B changes except adding one repository + auth. · **Design:** [DESIGN.md §9](DESIGN.md)
 
-- [ ] **9.1 Supabase project + schema**  *(shortened)*
-  - **Goal:** create tables + RLS + `unique(user_id, date)` per [DESIGN.md §9.2](DESIGN.md)
+- [ ] **T13 — Supabase project + schema**
+  - **Goal:** create the cloud database with security
+  - **Covers:** tables (settings, time_entries, absences) + RLS (`user_id = auth.uid()`) + `unique(user_id, date)`
   - **Design:** [DESIGN.md §9.2](DESIGN.md)
-  - **DoD:** tables exist; RLS blocks cross-user reads
+  - **Edge:** RLS blocks cross-user reads
+  - **DoD:** tables exist; a second user cannot read another's rows
   - **Deps:** —
   - **Out of scope:** app wiring
-- [ ] **9.2 `<AuthGate>` + login screen**  *(shortened)*
-  - **Goal:** Supabase Auth (email/password)
+
+- [ ] **T14 — Auth**
+  - **Goal:** login gating the app
+  - **Covers:** `<AuthGate>` + login screen (Supabase Auth email/password)
   - **Design:** [DESIGN.md §9.1](DESIGN.md)
-  - **DoD:** unauthenticated → login; authenticated → app
-  - **Deps:** 9.1
-  - **Out of scope:** data migration (9.4)
-- [ ] **9.3 `SupabaseRepository`**  *(full 7-field)*
+  - **Edge:** unauthenticated → login; authenticated → app
+  - **DoD:** login/logout works; `userId` becomes `auth.uid()`
+  - **Deps:** T13
+  - **Out of scope:** migration (T16)
+
+- [ ] **T15 — `SupabaseRepository`**
   - **Goal:** implement the `Repository` interface against Supabase
+  - **Covers:** all `Repository` methods over Postgres; `updated_at` last-write-wins
   - **Design:** [DESIGN.md §9.3, §9.4](DESIGN.md)
-  - **In:** `Repository` method calls
-  - **Out:** `Promise`-wrapped results from Postgres
-  - **Edge:** RLS-scoped reads; `updated_at` last-write-wins; offline → queue/error
+  - **Edge:** RLS-scoped reads; offline → queue/error
   - **DoD:** the **same** hook/UI tests pass with this repo injected
-  - **Deps:** 2.1, 9.1
-  - **Out of scope:** conflict field-merge (future)
-- [ ] **9.4 Local → cloud migration**  *(shortened)*
-  - **Goal:** on first login, offer to import local data via `exportAll`/`importAll`
+  - **Deps:** T5, T13
+  - **Out of scope:** field-level conflict merge (future)
+
+- [ ] **T16 — Local → cloud migration**
+  - **Goal:** carry existing local data into the cloud account
+  - **Covers:** first-login prompt → `exportAll()` (local) → `importAll()` (Supabase)
   - **Design:** [DESIGN.md §9.3](DESIGN.md)
-  - **DoD:** local data appears in the cloud account; visible on a second device
-  - **Deps:** 2.5, 9.3
+  - **Edge:** data visible on a second device after migration
+  - **DoD:** local data appears in the cloud account; cross-device verified
+  - **Deps:** T5, T15
   - **Out of scope:** —
 
 ---
 
 ## Definition of Done (whole project) — mirrors [SPEC.md §7](SPEC.md)
 
-- [ ] Every calculation rule (Milestone 1) implemented + unit-tested.
+- [x] Every calculation rule (T2–T4) implemented + unit-tested.
 - [ ] Every [SPEC.md §6](SPEC.md) edge case handled or explicitly marked out of scope.
 - [ ] Dashboard correctly shows "left today / left this month"; alerts fire under defined conditions.
 - [ ] CSV export and JSON backup work end-to-end.
