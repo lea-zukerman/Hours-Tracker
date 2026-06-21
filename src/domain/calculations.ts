@@ -1,5 +1,6 @@
-import type { Minutes, Settings, TimeEntry } from './types.ts';
-import { entryWorkedMinutes } from './time.ts';
+import { DateTime } from 'luxon';
+import type { Absence, Minutes, Settings, TimeEntry } from './types.ts';
+import { entryWorkedMinutes, isWorkDay } from './time.ts';
 
 /**
  * Sum of net worked minutes across a month's entries (DESIGN.md §6,
@@ -36,4 +37,52 @@ export function workedMonthMinutes(
  */
 export function effectiveQuota(settings: Settings, _month: string): Minutes {
   return Math.round((settings.monthlyQuotaMinutes * settings.jobPercent) / 100);
+}
+
+/**
+ * Paid-absence credit for a month, in minutes (DESIGN.md §6, calculations.ts;
+ * SPEC §3.6, §6.2.10-13).
+ *
+ * Each **work day** (settings.workDays) within an absence's date range that
+ * falls inside `month` is credited:
+ * - full-day absence → the daily target;
+ * - partial day (`partialMinutes` set) → that partial amount only.
+ * Weekends inside a range are not credited, and `unpaid` absences credit
+ * nothing. Vacation, sick, holiday and reserve are all paid.
+ */
+export function paidAbsenceMinutes(
+  absences: Absence[],
+  settings: Settings,
+  month: string,
+): Minutes {
+  let total = 0;
+  for (const absence of absences) {
+    if (absence.type === 'unpaid') continue;
+
+    let cursor = DateTime.fromISO(absence.dateFrom);
+    const end = DateTime.fromISO(absence.dateTo);
+    if (!cursor.isValid || !end.isValid) continue;
+
+    const perDay =
+      absence.partialMinutes !== undefined ? absence.partialMinutes : settings.dailyTargetMinutes;
+
+    while (cursor <= end) {
+      const iso = cursor.toFormat('yyyy-MM-dd');
+      if (cursor.toFormat('yyyy-MM') === month && isWorkDay(iso, settings)) {
+        total += perDay;
+      }
+      cursor = cursor.plus({ days: 1 });
+    }
+  }
+  return total;
+}
+
+/**
+ * Credited minutes = worked + paid absence (DESIGN.md §6; SPEC §3.0 line 93).
+ * The no-double-count guarantee is structural: a partial absence credits only
+ * its partial amount, so summing with the same day's worked minutes never
+ * over-counts (SPEC §6.2.13, UC-4).
+ */
+export function creditedMinutes(worked: Minutes, paidAbsence: Minutes): Minutes {
+  return worked + paidAbsence;
 }

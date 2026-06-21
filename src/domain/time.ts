@@ -1,5 +1,18 @@
 import { DateTime } from 'luxon';
-import type { Minutes, Settings, Shift, TimeEntry } from './types.ts';
+import type { IsoDate, Minutes, Settings, Shift, TimeEntry, Weekday } from './types.ts';
+
+/**
+ * Day-of-week for a calendar day, as our Weekday (0 = Sunday … 6 = Saturday).
+ * Luxon uses Mon=1…Sun=7; `% 7` maps Sun(7)→0 and leaves Mon..Sat as 1..6.
+ */
+export function weekdayOf(isoDate: IsoDate): Weekday {
+  return (DateTime.fromISO(isoDate).weekday % 7) as Weekday;
+}
+
+/** True when the given calendar day is a configured work day. */
+export function isWorkDay(isoDate: IsoDate, settings: Settings): boolean {
+  return settings.workDays.includes(weekdayOf(isoDate));
+}
 
 /**
  * Duration of a single shift, in integer minutes (DESIGN.md §6, time.ts).

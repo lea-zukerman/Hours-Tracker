@@ -1,4 +1,4 @@
-import type { Settings, Shift, TimeEntry } from '../types.ts';
+import type { Absence, Settings, Shift, TimeEntry } from '../types.ts';
 
 /**
  * Default Settings for tests — mirrors the product defaults (DESIGN.md §4:
@@ -45,6 +45,18 @@ export function makeEntry(overrides: Partial<TimeEntry> = {}): TimeEntry {
     date: '2026-06-18',
     shifts: [],
     breakMinutes: 0,
+    ...overrides,
+  };
+}
+
+/** An Absence with sensible defaults (full-day vacation); override per test. */
+export function makeAbsence(overrides: Partial<Absence> = {}): Absence {
+  return {
+    id: 'a1',
+    userId: 'u1',
+    dateFrom: '2026-06-16',
+    dateTo: '2026-06-16',
+    type: 'vacation',
     ...overrides,
   };
 }
