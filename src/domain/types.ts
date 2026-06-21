@@ -98,6 +98,25 @@ export interface MonthSummary {
   status: MonthStatus;
 }
 
+// ----- Validation (domain codes; UI maps them to Hebrew messages, 5.3) -----
+export type ValidationCode =
+  | 'out_before_in'
+  | 'break_exceeds_presence'
+  | 'clock_out_without_in'
+  | 'invalid_input'
+  | 'overlapping_shifts'
+  | 'future_worked_hours';
+
+export interface ValidationIssue {
+  code: ValidationCode;
+  shiftIndex?: number; // which shift triggered it, when applicable
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  issues: ValidationIssue[];
+}
+
 export type AlertType =
   | 'end_of_month'
   | 'overtime'
