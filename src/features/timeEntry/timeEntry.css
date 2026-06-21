@@ -1,0 +1,54 @@
+/* Time-entry feature styles (DESIGN.md §8). */
+
+.te-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.te-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--muted);
+}
+.te-field input {
+  font-size: var(--fs-body, 1rem);
+  color: var(--text, inherit);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border, #ccc);
+  border-radius: var(--radius-sm);
+  background: var(--surface, #fff);
+}
+
+.te-modes {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.te-row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.te-errors {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  background: color-mix(in srgb, var(--danger, #c0392b) 8%, transparent);
+  border-radius: var(--radius-sm);
+  color: var(--danger, #c0392b);
+  font-weight: 500;
+}
+
+.te-actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}

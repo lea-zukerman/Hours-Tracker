@@ -6,7 +6,7 @@
 | **Version** | 3.0 |
 | **Date** | 21/06/2026 |
 | **Companion docs** | [SPEC.md](SPEC.md) v1.1 · [DESIGN.md](DESIGN.md) v1.0 |
-| **Progress** | 7 of 16 done · 0 partial · 127 tests passing |
+| **Progress** | 8 of 16 done · 0 partial · 135 tests passing |
 
 > 16 consolidated tasks. Related functions are grouped into one task instead of one-per-function. Each task lists what it **Covers**, links to its **Design** section, and states **Edge** cases + **DoD**. Task numbers are planning labels only — code is organized by [DESIGN.md](DESIGN.md) structure, so renumbering never requires code changes. SPEC → DESIGN → TASK.
 
@@ -91,12 +91,12 @@
   - **Deps:** T7
   - **Out of scope:** full WCAG AA audit (post-MVP)
 
-- [ ] **T9 — Time entry**
+- [x] **T9 — Time entry**
   - **Goal:** log time via clock or manual entry
-  - **Covers:** live clock (Start/Stop + Pause/Resume accumulating break); manual form (date + in/out + break, add/remove **multiple shifts**, or total-hours mode); inline validation (wires `validateEntry`, Hebrew messages); edit/delete
+  - **Covers:** live clock Start/Stop + **Pause/Resume** (useClock banks paused time as break; TodayCard buttons) ✅; `ManualEntryForm` — date + multi-shift in/out + break, or total-hours mode ✅; inline validation wiring `validateEntry` → Hebrew via `messages.ts` ✅; edit/delete the day's entry ✅; helper `shiftInstants.ts` (local⇄UTC). Wired into DashboardPage via "➕ הוספה ידנית".
   - **Design:** [DESIGN.md §7, §8](DESIGN.md)
-  - **Edge:** pause adds to break; multi-shift day; each validation case shows a message; delete → dashboard updates
-  - **DoD:** create/edit/delete a multi-shift day end-to-end
+  - **Edge:** pause adds to break; multi-shift day; break>presence shows a message + blocks save; delete → dashboard updates
+  - **DoD:** `ManualEntryForm.test`, `shiftInstants.test`, `useClock.test` (pause) ✅ — messages covered via the form test
   - **Deps:** T6, T4
   - **Out of scope:** the validation rules themselves (T4, done)
 

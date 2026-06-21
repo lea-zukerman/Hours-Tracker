@@ -34,6 +34,12 @@
   font-weight: 600;
 }
 
+.today__controls {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
 /* ---- MonthCard ---- */
 .month {
   display: flex;

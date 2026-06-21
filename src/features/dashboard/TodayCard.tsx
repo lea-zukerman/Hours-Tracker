@@ -31,7 +31,7 @@ export function TodayCard({
 
   const { settings } = useSettings();
   const { entries } = useTimeEntries(month);
-  const { isRunning, elapsedSeconds, start, stop } = useClock({ zone, now });
+  const { isRunning, isPaused, elapsedSeconds, start, pause, resume, stop } = useClock({ zone, now });
 
   if (!settings) return <Card title="היום">…</Card>;
 
@@ -54,7 +54,11 @@ export function TodayCard({
           <div>
             <div className="num today__big">{formatMinutes(worked)}</div>
             <div className="label">
-              {isRunning ? `רץ · ${formatClock(elapsedSeconds)}` : 'עבדת היום'}
+              {isRunning
+                ? isPaused
+                  ? `מושהה · ${formatClock(elapsedSeconds)}`
+                  : `רץ · ${formatClock(elapsedSeconds)}`
+                : 'עבדת היום'}
             </div>
           </div>
         </ProgressRing>
@@ -69,9 +73,20 @@ export function TodayCard({
               </>
             )}
           </p>
-          <Button variant={isRunning ? 'danger' : 'primary'} onClick={() => void (isRunning ? stop() : start())}>
-            {isRunning ? '■ עצור' : '▶ התחל'}
-          </Button>
+          {isRunning ? (
+            <div className="today__controls">
+              <Button variant="danger" onClick={() => void stop()}>
+                ■ עצור
+              </Button>
+              <Button variant="ghost" onClick={() => (isPaused ? resume() : pause())}>
+                {isPaused ? '▶ המשך' : '⏸ הפסקה'}
+              </Button>
+            </div>
+          ) : (
+            <Button variant="primary" onClick={() => void start()}>
+              ▶ התחל
+            </Button>
+          )}
         </div>
       </div>
     </Card>
