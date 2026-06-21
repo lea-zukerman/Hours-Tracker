@@ -1,7 +1,7 @@
 :root {
-  font-family: system-ui, 'Segoe UI', 'Arial Hebrew', Arial, sans-serif;
+  font-family: var(--font-body, system-ui, sans-serif);
   line-height: 1.5;
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
 * {
@@ -14,7 +14,50 @@ body {
 }
 
 .app-shell {
-  max-width: 960px;
+  max-width: 980px;
   margin-inline: auto;
-  padding: 1.5rem;
+  padding: clamp(1rem, 3vw, 2rem);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* Instrument top-bar: title + section nav. */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding-block-end: var(--space-4);
+  border-block-end: 1px solid var(--line);
+}
+.app-header h1 {
+  font-size: var(--fs-h1);
+  letter-spacing: -0.01em;
+}
+
+.app-nav {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.app-nav a {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+}
+.app-nav a:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+.app-nav a.active {
+  background: var(--accent);
+  color: var(--accent-ink);
 }

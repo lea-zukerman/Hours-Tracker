@@ -7,9 +7,13 @@
   border-radius: var(--radius);
   box-shadow: var(--shadow-card);
   padding: var(--space-5);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 .ht-card__title {
-  font-size: var(--fs-h2);
+  font-size: var(--fs-label);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
   margin-block-end: var(--space-4);
 }
 
@@ -41,15 +45,15 @@
   color: var(--accent-ink);
 }
 .ht-btn--primary:hover:not(:disabled) {
-  background: #245ce0;
+  background: color-mix(in srgb, var(--accent) 85%, #000);
 }
 .ht-btn--ghost {
-  background: transparent;
+  background: var(--surface);
   color: var(--ink);
   border-color: var(--line);
 }
 .ht-btn--ghost:hover:not(:disabled) {
-  background: #f0f3f8;
+  background: var(--surface-sunk);
 }
 .ht-btn--danger {
   background: transparent;

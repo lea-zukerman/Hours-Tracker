@@ -1,30 +1,44 @@
-/* Design tokens — "instrument panel" direction (DESIGN.md §8.1).
-   The dial/number is the hero; tabular figures keep time numbers steady. */
+/* Design tokens — "Chronograph" direction (DESIGN.md §8.1, frontend-design skill).
+   A precision time-instrument: the numeric dial is the hero; a deep teal drives
+   actions; a signal-amber marks the LIVE/now state (the running clock, caution).
+   Grounded in the subject (an employee's work-hours gauge), not a templated SaaS
+   blue. Hebrew-first type via Rubik (display) + Assistant (body). */
+
+@import url('https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700;800&family=Rubik:wght@500;600;700;800&display=swap');
 
 :root {
-  /* Color */
-  --bg: #f4f6f9;
+  /* Core palette */
+  --canvas: #e9edf2; /* cool paper — deliberately NOT the AI-default cream */
+  --bg: var(--canvas);
   --surface: #ffffff;
-  --ink: #16233a;
-  --muted: #69748a;
-  --line: #e4e8ef;
-  --accent: #2f6bff;
-  --accent-ink: #ffffff;
+  --surface-sunk: #f3f6f9;
+  --ink: #0f1f33; /* deep navy-ink — strong contrast for the figures */
+  --muted: #5d6b80;
+  --line: #dde4ec;
+  --border: var(--line);
+  --text: var(--ink);
 
-  /* Semantic (status encodes meaning) */
-  --positive: #12996b;
-  --negative: #e23b3b;
-  --warn: #e89211;
+  /* Action vs LIVE: teal acts, amber signals "now / caution" */
+  --accent: #0e7c86; /* primary action + default gauge */
+  --accent-ink: #ffffff;
+  --signal: #f2682c; /* the running clock / overtime caution */
+  --warn: var(--signal);
+
+  /* Semantic status (encodes meaning) */
+  --positive: #1f9d6b;
+  --negative: #d83a3a;
+  --danger: var(--negative);
 
   /* Typography */
-  --font-display: 'Rubik', system-ui, sans-serif; /* headings + numbers */
-  --font-body: 'Assistant', system-ui, sans-serif; /* UI text */
+  --font-display: 'Rubik', system-ui, 'Segoe UI', sans-serif; /* headings + numbers */
+  --font-body: 'Assistant', system-ui, 'Segoe UI', sans-serif; /* UI text */
 
-  --fs-display: clamp(2.25rem, 6vw, 2.9rem);
-  --fs-h1: 1.5rem;
-  --fs-h2: 1.125rem;
+  --fs-display: clamp(2.6rem, 7vw, 3.6rem);
+  --fs-h1: 1.6rem;
+  --fs-h2: 1.2rem;
   --fs-body: 1rem;
-  --fs-label: 0.8125rem;
+  --fs-sm: 0.875rem;
+  --fs-label: 0.78rem;
 
   /* Space & shape */
   --space-1: 0.25rem;
@@ -34,12 +48,13 @@
   --space-5: 1.5rem;
   --space-6: 2rem;
 
-  --radius: 14px;
-  --radius-sm: 9px;
+  --radius: 18px;
+  --radius-sm: 10px;
   --radius-pill: 999px;
 
-  --shadow-card: 0 1px 2px rgba(22, 35, 58, 0.06), 0 6px 20px rgba(22, 35, 58, 0.05);
-  --ring: 0 0 0 3px rgba(47, 107, 255, 0.45);
+  --shadow-card: 0 1px 2px rgba(15, 31, 51, 0.05), 0 10px 30px rgba(15, 31, 51, 0.07);
+  --shadow-hero: 0 2px 4px rgba(15, 31, 51, 0.06), 0 18px 48px rgba(15, 31, 51, 0.1);
+  --ring: 0 0 0 3px rgba(14, 124, 134, 0.45);
 }
 
 * {
@@ -49,7 +64,9 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--bg);
+  background:
+    radial-gradient(1200px 480px at 100% -10%, color-mix(in srgb, var(--accent) 8%, transparent), transparent),
+    var(--bg);
   color: var(--ink);
   font-family: var(--font-body);
   font-size: var(--fs-body);
@@ -61,7 +78,7 @@ h1,
 h2,
 h3 {
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 700;
   margin: 0;
 }
 
@@ -70,14 +87,16 @@ h3 {
   font-family: var(--font-display);
   font-feature-settings: 'tnum' 1;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
 /* A small, letter-spaced label voice. */
 .label {
   font-size: var(--fs-label);
   color: var(--muted);
-  letter-spacing: 0.02em;
-  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 600;
 }
 
 /* Visible keyboard focus across the app (DESIGN.md §8.1 accessibility). */
