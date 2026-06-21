@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import type { Minutes, Settings, Shift } from './types.ts';
+import type { Minutes, Settings, Shift, TimeEntry } from './types.ts';
 
 /**
  * Duration of a single shift, in integer minutes (DESIGN.md §6, time.ts).
@@ -42,4 +42,31 @@ export function autoBreakMinutes(presenceMinutes: Minutes, settings: Settings): 
   if (!settings.autoBreakEnabled) return 0;
   if (presenceMinutes <= settings.autoBreakThresholdMinutes) return 0;
   return settings.autoBreakDeductMinutes;
+}
+
+/**
+ * Net worked minutes for one day's entry (DESIGN.md §6, time.ts).
+ *
+ * Two modes:
+ * - **Manual total** (`manualMinutes` set): the day was logged as a bare
+ *   hours total with no exact times — return it as-is (SPEC §3.2B).
+ * - **Shifts**: sum each shift's net duration (presence), then subtract
+ *   manual breaks and the auto-break computed on that presence.
+ *
+ * Auto-break is computed on total presence (sum of shifts) before any
+ * deduction. The result is floored at 0 (breaks can't make a day negative).
+ */
+export function entryWorkedMinutes(
+  entry: TimeEntry,
+  settings: Settings,
+  zone: string,
+): Minutes {
+  if (entry.manualMinutes !== undefined) {
+    return Math.max(0, entry.manualMinutes);
+  }
+
+  const presence = entry.shifts.reduce((sum, shift) => sum + netShiftMinutes(shift, zone), 0);
+  const autoBreak = autoBreakMinutes(presence, settings);
+  const worked = presence - entry.breakMinutes - autoBreak;
+  return Math.max(0, worked);
 }

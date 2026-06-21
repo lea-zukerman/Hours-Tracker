@@ -1,4 +1,4 @@
-import type { Settings } from '../types.ts';
+import type { Settings, Shift, TimeEntry } from '../types.ts';
 
 /**
  * Default Settings for tests — mirrors the product defaults (DESIGN.md §4:
@@ -28,6 +28,23 @@ export function makeSettings(overrides: Partial<Settings> = {}): Settings {
     sickAccrualPerMonth: 1.5,
     vacationOpeningBalance: 0,
     sickOpeningBalance: 0,
+    ...overrides,
+  };
+}
+
+/** Convenience: a Shift literal. */
+export function makeShift(start: string, end: string | null): Shift {
+  return { start, end };
+}
+
+/** A TimeEntry with sensible defaults; override any field per test. */
+export function makeEntry(overrides: Partial<TimeEntry> = {}): TimeEntry {
+  return {
+    id: 'e1',
+    userId: 'u1',
+    date: '2026-06-18',
+    shifts: [],
+    breakMinutes: 0,
     ...overrides,
   };
 }
