@@ -1,0 +1,125 @@
+/* Presentational primitives (DESIGN.md §8.1). RTL-safe via logical props. */
+
+/* ---- Card ---- */
+.ht-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-5);
+}
+.ht-card__title {
+  font-size: var(--fs-h2);
+  margin-block-end: var(--space-4);
+}
+
+/* ---- Button ---- */
+.ht-btn {
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-5);
+  cursor: pointer;
+  min-height: 44px; /* tap target (DESIGN.md §8.1) */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+}
+.ht-btn:active {
+  transform: translateY(1px);
+}
+.ht-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.ht-btn--primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.ht-btn--primary:hover:not(:disabled) {
+  background: #245ce0;
+}
+.ht-btn--ghost {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line);
+}
+.ht-btn--ghost:hover:not(:disabled) {
+  background: #f0f3f8;
+}
+.ht-btn--danger {
+  background: transparent;
+  color: var(--negative);
+  border-color: color-mix(in srgb, var(--negative) 35%, var(--line));
+}
+.ht-btn--danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--negative) 8%, transparent);
+}
+
+/* ---- ProgressRing (signature element) ---- */
+.ht-ring {
+  display: inline-grid;
+  place-items: center;
+  position: relative;
+}
+.ht-ring__svg {
+  transform: rotate(-90deg); /* start the sweep at 12 o'clock */
+  transform-origin: center;
+}
+.ht-ring__track {
+  stroke: var(--line);
+}
+.ht-ring__value {
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s ease;
+}
+.ht-ring__center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 12%;
+}
+
+/* ---- ProgressBar ---- */
+.ht-bar {
+  inline-size: 100%;
+}
+.ht-bar__track {
+  block-size: 10px;
+  background: var(--line);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+.ht-bar__fill {
+  block-size: 100%;
+  border-radius: var(--radius-pill);
+  transition: inline-size 0.5s ease;
+}
+
+/* ---- BalanceBadge ---- */
+.ht-badge {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+}
+.ht-badge--positive {
+  background: color-mix(in srgb, var(--positive) 12%, transparent);
+  color: var(--positive);
+}
+.ht-badge--negative {
+  background: color-mix(in srgb, var(--negative) 12%, transparent);
+  color: var(--negative);
+}
+.ht-badge--zero {
+  background: color-mix(in srgb, var(--muted) 12%, transparent);
+  color: var(--muted);
+}

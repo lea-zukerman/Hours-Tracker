@@ -1,0 +1,88 @@
+/* Design tokens — "instrument panel" direction (DESIGN.md §8.1).
+   The dial/number is the hero; tabular figures keep time numbers steady. */
+
+:root {
+  /* Color */
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --ink: #16233a;
+  --muted: #69748a;
+  --line: #e4e8ef;
+  --accent: #2f6bff;
+  --accent-ink: #ffffff;
+
+  /* Semantic (status encodes meaning) */
+  --positive: #12996b;
+  --negative: #e23b3b;
+  --warn: #e89211;
+
+  /* Typography */
+  --font-display: 'Rubik', system-ui, sans-serif; /* headings + numbers */
+  --font-body: 'Assistant', system-ui, sans-serif; /* UI text */
+
+  --fs-display: clamp(2.25rem, 6vw, 2.9rem);
+  --fs-h1: 1.5rem;
+  --fs-h2: 1.125rem;
+  --fs-body: 1rem;
+  --fs-label: 0.8125rem;
+
+  /* Space & shape */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+
+  --radius: 14px;
+  --radius-sm: 9px;
+  --radius-pill: 999px;
+
+  --shadow-card: 0 1px 2px rgba(22, 35, 58, 0.06), 0 6px 20px rgba(22, 35, 58, 0.05);
+  --ring: 0 0 0 3px rgba(47, 107, 255, 0.45);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Tabular figures everywhere a number lives, so digits don't jitter. */
+.num {
+  font-family: var(--font-display);
+  font-feature-settings: 'tnum' 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A small, letter-spaced label voice. */
+.label {
+  font-size: var(--fs-label);
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  font-weight: 500;
+}
+
+/* Visible keyboard focus across the app (DESIGN.md §8.1 accessibility). */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+  border-radius: var(--radius-sm);
+}
