@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { netShiftMinutes } from '../time.ts';
+import { netShiftMinutes, autoBreakMinutes } from '../time.ts';
 import type { Shift } from '../types.ts';
+import { makeSettings } from './fixtures.ts';
 
 const ZONE = 'Asia/Jerusalem';
 
@@ -52,5 +53,32 @@ describe('netShiftMinutes', () => {
   it('is zone-independent: same UTC instants yield the same duration (travel)', () => {
     const s = shift('2026-06-18T06:00:00.000Z', '2026-06-18T14:00:00.000Z');
     expect(netShiftMinutes(s, 'Asia/Jerusalem')).toBe(netShiftMinutes(s, 'America/New_York'));
+  });
+});
+
+describe('autoBreakMinutes', () => {
+  it('returns 0 when auto-break is disabled', () => {
+    const settings = makeSettings({ autoBreakEnabled: false });
+    expect(autoBreakMinutes(600, settings)).toBe(0);
+  });
+
+  it('returns 0 when presence is at or under the threshold', () => {
+    const settings = makeSettings({
+      autoBreakEnabled: true,
+      autoBreakThresholdMinutes: 360,
+      autoBreakDeductMinutes: 30,
+    });
+    expect(autoBreakMinutes(360, settings)).toBe(0); // exactly at threshold
+    expect(autoBreakMinutes(300, settings)).toBe(0); // under
+  });
+
+  it('deducts the configured amount when presence is over the threshold', () => {
+    const settings = makeSettings({
+      autoBreakEnabled: true,
+      autoBreakThresholdMinutes: 360,
+      autoBreakDeductMinutes: 30,
+    });
+    expect(autoBreakMinutes(361, settings)).toBe(30);
+    expect(autoBreakMinutes(600, settings)).toBe(30);
   });
 });

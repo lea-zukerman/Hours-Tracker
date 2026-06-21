@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import type { Minutes, Shift } from './types.ts';
+import type { Minutes, Settings, Shift } from './types.ts';
 
 /**
  * Duration of a single shift, in integer minutes (DESIGN.md §6, time.ts).
@@ -27,4 +27,19 @@ export function netShiftMinutes(shift: Shift, _zone: string): Minutes {
   const minutes = end.diff(start, 'minutes').minutes;
   if (minutes <= 0) return 0; // out <= in
   return Math.round(minutes);
+}
+
+/**
+ * Auto-deducted break for a day's presence (DESIGN.md §6, SPEC §3.2B).
+ *
+ * Policy: when enabled and total presence exceeds the threshold, a fixed
+ * amount is deducted. This is separate from manual breaks already recorded
+ * on the entry's `breakMinutes`.
+ *
+ * @returns the minutes to deduct; 0 when disabled or under threshold.
+ */
+export function autoBreakMinutes(presenceMinutes: Minutes, settings: Settings): Minutes {
+  if (!settings.autoBreakEnabled) return 0;
+  if (presenceMinutes <= settings.autoBreakThresholdMinutes) return 0;
+  return settings.autoBreakDeductMinutes;
 }
