@@ -1,4 +1,16 @@
-import type { Absence, Settings, Shift, TimeEntry } from '../types.ts';
+import type { Absence, Settings, Shift, TimeEntry, User } from '../types.ts';
+
+/** A User with sensible defaults (he-IL, Asia/Jerusalem); override per test. */
+export function makeUser(overrides: Partial<User> = {}): User {
+  return {
+    id: 'u1',
+    name: 'בודק',
+    email: 'tester@example.com',
+    locale: 'he-IL',
+    timezone: 'Asia/Jerusalem',
+    ...overrides,
+  };
+}
 
 /**
  * Default Settings for tests — mirrors the product defaults (DESIGN.md §4:
