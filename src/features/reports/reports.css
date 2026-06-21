@@ -1,0 +1,56 @@
+/* Reports feature styles (DESIGN.md §8). */
+
+.report {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.report__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.report__month {
+  font-size: var(--fs-h2);
+  font-weight: 700;
+}
+
+.report__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm, 0.875rem);
+}
+.report__table th,
+.report__table td {
+  padding: var(--space-2) var(--space-3);
+  text-align: start;
+  border-bottom: 1px solid var(--border, #e3e3e3);
+}
+.report__table thead th {
+  color: var(--muted);
+  font-weight: 600;
+}
+.report__table tfoot td {
+  font-weight: 700;
+  border-top: 2px solid var(--border, #e3e3e3);
+}
+.report__empty {
+  text-align: center;
+  color: var(--muted);
+  padding: var(--space-5);
+}
+
+.report__actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.report__warning {
+  margin: 0;
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--muted);
+}

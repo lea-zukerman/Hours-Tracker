@@ -9,6 +9,7 @@ import './features/dashboard/dashboard.css';
 import './features/timeEntry/timeEntry.css';
 import './features/absences/absences.css';
 import './features/alerts/alerts.css';
+import './features/reports/reports.css';
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(

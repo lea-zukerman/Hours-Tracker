@@ -6,7 +6,7 @@
 | **Version** | 3.0 |
 | **Date** | 21/06/2026 |
 | **Companion docs** | [SPEC.md](SPEC.md) v1.1 · [DESIGN.md](DESIGN.md) v1.0 |
-| **Progress** | 10 of 16 done · 0 partial · 141 tests passing |
+| **Progress** | 11 of 16 done · 0 partial · 148 tests passing |
 
 > 16 consolidated tasks. Related functions are grouped into one task instead of one-per-function. Each task lists what it **Covers**, links to its **Design** section, and states **Edge** cases + **DoD**. Task numbers are planning labels only — code is organized by [DESIGN.md](DESIGN.md) structure, so renumbering never requires code changes. SPEC → DESIGN → TASK.
 
@@ -19,7 +19,7 @@
 - [x] **T1 — Project setup**
   - **Goal:** scaffold a working, RTL React + TypeScript app with tooling
   - **Covers:** Vite + React + TS (strict); `react-router-dom`, `luxon`, `@tanstack/react-query`; ESLint + Prettier; Vitest + Testing Library + jsdom; folder skeleton (`domain/ data/ app/ features/ ui/ i18n/`); `dir="rtl"` + `lang="he"` shell + date/time format helpers
-  - **Design:** [DESIGN.md §2, §3, §8.1](DESIGN.md)
+  - **Design:** [DESIGN.md §2, §3, §8.1, §10](DESIGN.md)
   - **DoD:** `npm run dev` serves an RTL app; `npm run test` + `npm run lint` pass ✅
   - **Deps:** —
   - **Out of scope:** Supabase client (Phase C)
@@ -109,12 +109,12 @@
   - **Deps:** T6, T4
   - **Out of scope:** accrual *settings inputs* → T12 settings page
 
-- [ ] **T11 — Reports & export**
+- [x] **T11 — Reports & export**
   - **Goal:** view, navigate, and export monthly data
-  - **Covers:** month table (day-by-day: date/in/out/break/net/absence/note + summary row); month navigation / history; CSV export (incl. summary); JSON backup/restore UI + browser-cleanup warning
+  - **Covers:** `ReportsPage` — day-by-day table (date/in/out/break/net/absence/note) + summary footer ✅; month prev/next navigation ✅; CSV export with summary ✅; JSON backup + restore (file input) + browser-cleanup warning ✅. Pure: `monthRows.ts` (rows builder) + `csv.ts` (BOM, RFC-4180 escaping). Routed at `/reports` (nav: דוחות).
   - **Design:** [DESIGN.md §8, §5 (backup)](DESIGN.md)
-  - **Edge:** CSV opens with Hebrew (UTF-8 BOM); export→import restores state (§6.5.28)
-  - **DoD:** UC-7 (CSV + JSON backup) works end-to-end
+  - **Edge:** CSV starts with UTF-8 BOM + escapes commas; multi-day absence marks each in-month day; empty month shows a placeholder
+  - **DoD:** `monthRows.test`, `csv.test`, `ReportsPage.test` ✅ — UC-7 (CSV + JSON backup) supported
   - **Deps:** T6, T5
   - **Out of scope:** PDF (phase 2)
 
@@ -176,5 +176,5 @@
 - [x] Every calculation rule (T2–T4) implemented + unit-tested.
 - [ ] Every [SPEC.md §6](SPEC.md) edge case handled or explicitly marked out of scope.
 - [x] Dashboard correctly shows "left today / left this month"; alerts fire under defined conditions (AlertsBanner, T12).
-- [ ] CSV export and JSON backup work end-to-end.
+- [x] CSV export and JSON backup work end-to-end (T11).
 - [ ] *(Sync phase)* Login + same data on two devices + local→cloud migration.
