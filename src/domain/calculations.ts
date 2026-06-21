@@ -1,6 +1,18 @@
 import { DateTime } from 'luxon';
-import type { Absence, Minutes, MonthStatus, Settings, TimeEntry } from './types.ts';
+import type { Absence, IsoDate, Minutes, MonthStatus, Settings, TimeEntry } from './types.ts';
 import { entryWorkedMinutes, isWorkDay } from './time.ts';
+
+/**
+ * True when a **full-day** absence covers the given calendar day. Partial-day
+ * absences (partialMinutes set) don't remove the day — you still work part of
+ * it — so they don't reduce the remaining/available work days.
+ * ISO 'YYYY-MM-DD' strings compare correctly with lexicographic <=.
+ */
+function isFullDayAbsentOn(iso: IsoDate, absences: Absence[]): boolean {
+  return absences.some(
+    (a) => a.partialMinutes === undefined && a.dateFrom <= iso && iso <= a.dateTo,
+  );
+}
 
 /**
  * Sum of net worked minutes across a month's entries (DESIGN.md §6,
@@ -111,4 +123,40 @@ export function monthStatus(balance: Minutes): MonthStatus {
   if (balance > 0) return 'surplus';
   if (balance < 0) return 'deficit';
   return 'on_track';
+}
+
+/**
+ * Count of remaining work days from `today` (inclusive) to month end, minus
+ * planned full-day absences (DESIGN.md §6, calculations.ts).
+ *
+ * Counts each configured work day (settings.workDays) in the window
+ * [max(today, month start) … month end] that isn't covered by a full-day
+ * absence. Today counts if it's a work day (it may still be completed).
+ * Returns 0 if `today` is past the month's end.
+ */
+export function remainingWorkdays(
+  today: IsoDate,
+  month: string,
+  settings: Settings,
+  absences: Absence[],
+): number {
+  const monthStart = DateTime.fromISO(`${month}-01`);
+  if (!monthStart.isValid) return 0;
+  const monthEnd = monthStart.endOf('month');
+
+  const todayDt = DateTime.fromISO(today);
+  // Begin at the later of today and the month's first day.
+  let cursor =
+    todayDt.isValid && todayDt > monthStart ? todayDt.startOf('day') : monthStart;
+  if (cursor > monthEnd) return 0;
+
+  let count = 0;
+  while (cursor <= monthEnd) {
+    const iso = cursor.toFormat('yyyy-MM-dd');
+    if (isWorkDay(iso, settings) && !isFullDayAbsentOn(iso, absences)) {
+      count++;
+    }
+    cursor = cursor.plus({ days: 1 });
+  }
+  return count;
 }
