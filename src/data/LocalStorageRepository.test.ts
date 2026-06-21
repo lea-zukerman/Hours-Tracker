@@ -108,6 +108,34 @@ describe('LocalStorageRepository — absences', () => {
   });
 });
 
+describe('LocalStorageRepository — cross-tab consistency', () => {
+  it('fires the listener on a storage event for one of our keys', () => {
+    let calls = 0;
+    const unsubscribe = repo.onExternalChange(() => calls++);
+
+    window.dispatchEvent(new StorageEvent('storage', { key: 'ht:v1:entries' }));
+    expect(calls).toBe(1);
+
+    // A clear() (key === null) also notifies.
+    window.dispatchEvent(new StorageEvent('storage', { key: null }));
+    expect(calls).toBe(2);
+
+    unsubscribe();
+  });
+
+  it('ignores storage events for unrelated keys, and stops after unsubscribe', () => {
+    let calls = 0;
+    const unsubscribe = repo.onExternalChange(() => calls++);
+
+    window.dispatchEvent(new StorageEvent('storage', { key: 'someOtherApp:data' }));
+    expect(calls).toBe(0);
+
+    unsubscribe();
+    window.dispatchEvent(new StorageEvent('storage', { key: 'ht:v1:entries' }));
+    expect(calls).toBe(0); // no longer listening
+  });
+});
+
 describe('LocalStorageRepository — backup', () => {
   it('exportAll then importAll restores an identical dataset', async () => {
     await repo.saveUser(makeUser());

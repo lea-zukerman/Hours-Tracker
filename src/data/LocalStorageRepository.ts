@@ -193,4 +193,26 @@ export class LocalStorageRepository implements Repository {
     this.write(this.keys.absences, snapshot.absences);
     return Promise.resolve();
   }
+
+  /**
+   * Cross-tab consistency (DESIGN.md §5; SPEC §6.5.27). Calls `listener`
+   * whenever ANOTHER tab writes one of our namespaced keys (the browser fires a
+   * `storage` event only in other tabs). The hook layer (3.x) uses this to
+   * invalidate cached reads so a write in tab A surfaces in tab B. Reads are
+   * always fresh from storage, so nothing else needs to change.
+   *
+   * @returns an unsubscribe function.
+   */
+  onExternalChange(listener: () => void): () => void {
+    if (typeof window === 'undefined') return () => {};
+
+    const ourKeys = new Set(Object.values(this.keys));
+    const handler = (e: StorageEvent) => {
+      // key === null means storage.clear(); otherwise match our namespace.
+      if (e.key === null || ourKeys.has(e.key)) listener();
+    };
+
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
+  }
 }
