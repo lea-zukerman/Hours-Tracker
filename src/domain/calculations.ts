@@ -18,3 +18,22 @@ export function workedMonthMinutes(
 ): Minutes {
   return entries.reduce((sum, entry) => sum + entryWorkedMinutes(entry, settings, zone), 0);
 }
+
+/**
+ * Effective monthly quota in minutes, scaled by job percent (DESIGN.md §6,
+ * calculations.ts; SPEC §6.4.23).
+ *
+ * quota = monthlyQuotaMinutes × jobPercent / 100, rounded to whole minutes.
+ * A quota of 0 yields 0 (no division here — the divide-by-zero guard lives
+ * in requiredPerDay, 1.11).
+ *
+ * TODO (deferred — SPEC §6.4.23 mid-month pro-rata): a job-percent change
+ * partway through the month should produce a day-weighted average quota.
+ * The current data model (Settings.jobPercent, single value) can't express
+ * a mid-month change, so this is intentionally not handled yet. When needed,
+ * add an optional change schedule to Settings and weight by days here — a
+ * backward-compatible extension. The `month` param is reserved for it.
+ */
+export function effectiveQuota(settings: Settings, _month: string): Minutes {
+  return Math.round((settings.monthlyQuotaMinutes * settings.jobPercent) / 100);
+}
