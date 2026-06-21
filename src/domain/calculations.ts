@@ -14,6 +14,11 @@ function isFullDayAbsentOn(iso: IsoDate, absences: Absence[]): boolean {
   );
 }
 
+/** True when any absence (full or partial, any type) covers the given day. */
+function isAbsentOn(iso: IsoDate, absences: Absence[]): boolean {
+  return absences.some((a) => a.dateFrom <= iso && iso <= a.dateTo);
+}
+
 /**
  * Sum of net worked minutes across a month's entries (DESIGN.md §6,
  * calculations.ts).
@@ -159,4 +164,45 @@ export function remainingWorkdays(
     cursor = cursor.plus({ days: 1 });
   }
   return count;
+}
+
+/**
+ * Past work days in the month with neither a time entry nor an absence
+ * (DESIGN.md §6, calculations.ts; SPEC §6.3.14). These are candidates for the
+ * "you forgot to log" reminder (8.2).
+ *
+ * Scans work days from month start through the day BEFORE `today` (today is
+ * still in progress; future days can't be missing). A day is missing unless it
+ * has an entry or is covered by any absence (a reported absence — including a
+ * holiday — counts as handled).
+ */
+export function missingWorkdays(
+  today: IsoDate,
+  month: string,
+  settings: Settings,
+  entries: TimeEntry[],
+  absences: Absence[],
+): IsoDate[] {
+  const monthStart = DateTime.fromISO(`${month}-01`);
+  if (!monthStart.isValid) return [];
+  const monthEnd = monthStart.endOf('month');
+
+  const todayDt = DateTime.fromISO(today);
+  // Last day to consider = the earlier of yesterday and the month's end.
+  const yesterday = todayDt.isValid ? todayDt.startOf('day').minus({ days: 1 }) : monthEnd;
+  const lastDay = yesterday < monthEnd ? yesterday : monthEnd;
+  if (lastDay < monthStart) return [];
+
+  const entryDates = new Set(entries.map((e) => e.date));
+
+  const missing: IsoDate[] = [];
+  let cursor = monthStart;
+  while (cursor <= lastDay) {
+    const iso = cursor.toFormat('yyyy-MM-dd');
+    if (isWorkDay(iso, settings) && !entryDates.has(iso) && !isAbsentOn(iso, absences)) {
+      missing.push(iso);
+    }
+    cursor = cursor.plus({ days: 1 });
+  }
+  return missing;
 }
