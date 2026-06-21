@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { workedMonthMinutes, effectiveQuota } from '../calculations.ts';
-import { makeSettings, makeEntry, makeShift } from './fixtures.ts';
+import { workedMonthMinutes, effectiveQuota } from './calculations.ts';
+import { makeSettings, makeEntry, makeShift } from '../test/fixtures.ts';
 
 const ZONE = 'Asia/Jerusalem';
 

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { netShiftMinutes, autoBreakMinutes } from '../time.ts';
-import type { Shift } from '../types.ts';
-import { makeSettings } from './fixtures.ts';
+import { netShiftMinutes, autoBreakMinutes } from './time.ts';
+import type { Shift } from './types.ts';
+import { makeSettings } from '../test/fixtures.ts';
 
 const ZONE = 'Asia/Jerusalem';
 

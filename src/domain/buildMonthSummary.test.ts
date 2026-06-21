@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { buildMonthSummary } from '../calculations.ts';
-import { makeSettings, makeEntry } from './fixtures.ts';
-import type { MonthInput } from '../types.ts';
+import { buildMonthSummary } from './calculations.ts';
+import { makeSettings, makeEntry } from '../test/fixtures.ts';
+import type { MonthInput } from './types.ts';
 
 describe('buildMonthSummary', () => {
   it('reproduces UC-2 exactly (143:20 / 182:00, deficit 38:40, 6 days, ≈6:27/day)', () => {

@@ -4,7 +4,7 @@ import { AbsencesSummaryCard } from './AbsencesSummaryCard.tsx';
 import { LocalStorageRepository } from '../../data/LocalStorageRepository.ts';
 import { createWrapper } from '../../test/providers.tsx';
 import { memoryStorage } from '../../test/memoryStorage.ts';
-import { makeAbsence } from '../../domain/__tests__/fixtures.ts';
+import { makeAbsence } from '../../test/fixtures.ts';
 
 describe('AbsencesSummaryCard', () => {
   it('shows vacation used this month and the accrued balance', async () => {

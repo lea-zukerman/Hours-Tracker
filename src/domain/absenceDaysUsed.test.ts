@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { absenceDaysUsed } from '../absences.ts';
-import { makeSettings, makeAbsence } from './fixtures.ts';
+import { absenceDaysUsed } from './absences.ts';
+import { makeSettings, makeAbsence } from '../test/fixtures.ts';
 
 const settings = makeSettings(); // Sun–Thu work days, target 516
 

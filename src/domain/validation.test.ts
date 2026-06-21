@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { validateEntry } from '../validation.ts';
-import { makeEntry, makeShift } from './fixtures.ts';
-import type { ValidationCode } from '../types.ts';
+import { validateEntry } from './validation.ts';
+import { makeEntry, makeShift } from '../test/fixtures.ts';
+import type { ValidationCode } from './types.ts';
 
 const ZONE = 'Asia/Jerusalem';
 const NOW = '2026-06-21T12:00:00.000Z'; // fixed "now" for deterministic future checks

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { exportBackup, importBackup, parseBackup } from './backup.ts';
 import { LocalStorageRepository } from './LocalStorageRepository.ts';
-import { makeUser, makeEntry, makeAbsence } from '../domain/__tests__/fixtures.ts';
+import { makeUser, makeEntry, makeAbsence } from '../test/fixtures.ts';
 
 function memoryStorage(): Storage {
   const map = new Map<string, string>();

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { requiredPerDay } from '../calculations.ts';
+import { requiredPerDay } from './calculations.ts';
 
 describe('requiredPerDay', () => {
   it('normal: splits the deficit across the remaining days (rounded)', () => {

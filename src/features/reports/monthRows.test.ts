@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildMonthRows } from './monthRows.ts';
 import { buildShift } from '../timeEntry/shiftInstants.ts';
-import { makeSettings, makeEntry, makeAbsence } from '../../domain/__tests__/fixtures.ts';
+import { makeSettings, makeEntry, makeAbsence } from '../../test/fixtures.ts';
 
 const ZONE = 'Asia/Jerusalem';
 const settings = makeSettings();

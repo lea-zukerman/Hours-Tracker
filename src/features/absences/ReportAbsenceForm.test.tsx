@@ -4,7 +4,7 @@ import { ReportAbsenceForm } from './ReportAbsenceForm.tsx';
 import { LocalStorageRepository } from '../../data/LocalStorageRepository.ts';
 import { createWrapper } from '../../test/providers.tsx';
 import { memoryStorage } from '../../test/memoryStorage.ts';
-import { makeAbsence } from '../../domain/__tests__/fixtures.ts';
+import { makeAbsence } from '../../test/fixtures.ts';
 
 const DATE = '2026-06-10';
 const MONTH = '2026-06';

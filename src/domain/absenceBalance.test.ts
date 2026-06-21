@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { absenceBalance } from '../absences.ts';
+import { absenceBalance } from './absences.ts';
 
 describe('absenceBalance', () => {
   it('accrues over months', () => {

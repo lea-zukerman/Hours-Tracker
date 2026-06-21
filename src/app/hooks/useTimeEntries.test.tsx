@@ -5,7 +5,7 @@ import { useAbsences } from './useAbsences.ts';
 import { LocalStorageRepository } from '../../data/LocalStorageRepository.ts';
 import { createWrapper } from '../../test/providers.tsx';
 import { memoryStorage } from '../../test/memoryStorage.ts';
-import { makeEntry, makeAbsence } from '../../domain/__tests__/fixtures.ts';
+import { makeEntry, makeAbsence } from '../../test/fixtures.ts';
 
 const MONTH = '2026-06';
 

@@ -7,7 +7,7 @@ import {
   makeEntry,
   makeShift,
   makeAbsence,
-} from '../domain/__tests__/fixtures.ts';
+} from '../test/fixtures.ts';
 
 function makeSnapshot(): DatasetSnapshot {
   return {

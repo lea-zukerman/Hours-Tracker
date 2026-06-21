@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { deriveAlerts, type AlertContext } from '../alerts.ts';
-import { makeSettings, makeEntry } from './fixtures.ts';
-import type { MonthSummary } from '../types.ts';
+import { deriveAlerts, type AlertContext } from './alerts.ts';
+import { makeSettings, makeEntry } from '../test/fixtures.ts';
+import type { MonthSummary } from './types.ts';
 
 /** A neutral MonthSummary (on_track, nothing due); override per test. */
 function makeSummary(overrides: Partial<MonthSummary> = {}): MonthSummary {

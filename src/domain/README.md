@@ -11,4 +11,4 @@
 | `absences.ts` | מאזן צבירת היעדרויות |
 | `alerts.ts` | גזירת התראות פעילות ממצב החודש |
 | `validation.ts` | בדיקת תקינות רשומת זמן |
-| `__tests__/` | בדיקת Vitest אחת לכל חוק + edge case |
+| `*.test.ts` | טסטי Vitest co-located ליד כל מודול (עוזרי הטסט המשותפים ב-`src/test/`) |

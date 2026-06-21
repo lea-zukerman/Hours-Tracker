@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { paidAbsenceMinutes, creditedMinutes } from '../calculations.ts';
-import { makeSettings, makeAbsence } from './fixtures.ts';
+import { paidAbsenceMinutes, creditedMinutes } from './calculations.ts';
+import { makeSettings, makeAbsence } from '../test/fixtures.ts';
 
 // June 2026 anchors: 18 = Thu, 19 = Fri, 20 = Sat, 21 = Sun, 16 = Tue.
 const MONTH = '2026-06';

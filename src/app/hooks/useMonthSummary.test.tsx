@@ -5,7 +5,7 @@ import { useTimeEntries } from './useTimeEntries.ts';
 import { LocalStorageRepository } from '../../data/LocalStorageRepository.ts';
 import { createWrapper } from '../../test/providers.tsx';
 import { memoryStorage } from '../../test/memoryStorage.ts';
-import { makeEntry } from '../../domain/__tests__/fixtures.ts';
+import { makeEntry } from '../../test/fixtures.ts';
 
 const MONTH = '2026-06';
 const OPTS = { today: '2026-06-23', zone: 'Asia/Jerusalem' };

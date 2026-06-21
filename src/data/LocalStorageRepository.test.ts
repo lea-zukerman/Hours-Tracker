@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { LocalStorageRepository, defaultSettings } from './LocalStorageRepository.ts';
-import { makeUser, makeEntry, makeShift, makeAbsence } from '../domain/__tests__/fixtures.ts';
+import { makeUser, makeEntry, makeShift, makeAbsence } from '../test/fixtures.ts';
 
 /** Minimal in-memory Storage so each test is fully isolated. */
 function memoryStorage(): Storage {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { balanceMinutes, monthStatus } from '../calculations.ts';
+import { balanceMinutes, monthStatus } from './calculations.ts';
 
 const QUOTA = 10920; // 182h
 

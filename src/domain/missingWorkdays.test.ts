@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { missingWorkdays } from '../calculations.ts';
-import { makeSettings, makeEntry, makeAbsence, makeShift } from './fixtures.ts';
+import { missingWorkdays } from './calculations.ts';
+import { makeSettings, makeEntry, makeAbsence, makeShift } from '../test/fixtures.ts';
 
 const settings = makeSettings(); // Sun–Thu
 // June 2026: 1 Mon, 2 Tue, 3 Wed are work days; 4 Thu used as "today".

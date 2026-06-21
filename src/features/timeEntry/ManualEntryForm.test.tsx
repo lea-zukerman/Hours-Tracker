@@ -4,7 +4,7 @@ import { ManualEntryForm } from './ManualEntryForm.tsx';
 import { LocalStorageRepository } from '../../data/LocalStorageRepository.ts';
 import { createWrapper } from '../../test/providers.tsx';
 import { memoryStorage } from '../../test/memoryStorage.ts';
-import { makeEntry } from '../../domain/__tests__/fixtures.ts';
+import { makeEntry } from '../../test/fixtures.ts';
 
 const ZONE = 'Asia/Jerusalem';
 const DATE = '2026-06-10'; // a past Wednesday — not "future"

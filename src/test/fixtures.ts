@@ -1,4 +1,4 @@
-import type { Absence, Settings, Shift, TimeEntry, User } from '../types.ts';
+import type { Absence, Settings, Shift, TimeEntry, User } from '../domain/types.ts';
 
 /** A User with sensible defaults (he-IL, Asia/Jerusalem); override per test. */
 export function makeUser(overrides: Partial<User> = {}): User {
