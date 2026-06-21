@@ -206,3 +206,18 @@ export function missingWorkdays(
   }
   return missing;
 }
+
+/**
+ * Minutes to work per remaining day to close the deficit (DESIGN.md §6,
+ * calculations.ts; SPEC §6.4.21).
+ *
+ * - balance ≥ 0 (surplus or met) → 0, nothing required.
+ * - deficit with remaining days → deficit ÷ days, rounded to whole minutes.
+ * - deficit with **0 remaining days** → null: cannot be completed
+ *   (drives the `cannot_complete` status, 1.12).
+ */
+export function requiredPerDay(balance: Minutes, remainingWorkdays: number): Minutes | null {
+  if (balance >= 0) return 0;
+  if (remainingWorkdays <= 0) return null;
+  return Math.round(-balance / remainingWorkdays);
+}
