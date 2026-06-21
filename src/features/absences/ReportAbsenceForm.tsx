@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card } from '../../ui/Card.tsx';
 import { Button } from '../../ui/Button.tsx';
 import { formatDate } from '../../ui/format.ts';
@@ -24,10 +24,13 @@ export function ReportAbsenceForm({
   date,
   month,
   onClose,
+  bare = false,
 }: {
   date: IsoDate;
   month: string;
   onClose?: () => void;
+  /** When true, render without the surrounding Card (for embedding in a panel). */
+  bare?: boolean;
 }) {
   const { absences, upsertAbsence, deleteAbsence } = useAbsences(month);
 
@@ -37,6 +40,17 @@ export function ReportAbsenceForm({
   const [isPartial, setIsPartial] = useState(false);
   const [partialHours, setPartialHours] = useState('4');
   const [note, setNote] = useState('');
+  const [syncedDate, setSyncedDate] = useState(date);
+
+  // Follow the incoming date (e.g. a day picked on the calendar): reset the
+  // range to that day. Standalone use passes a fixed date, so this is a no-op.
+  useEffect(() => {
+    if (date === syncedDate) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFrom(date);
+    setTo(date);
+    setSyncedDate(date);
+  }, [date, syncedDate]);
 
   const errors: string[] = [];
   if (to < from) errors.push('תאריך הסיום מוקדם מתאריך ההתחלה');
@@ -65,11 +79,10 @@ export function ReportAbsenceForm({
     onClose?.();
   }
 
-  return (
-    <Card title="דיווח היעדרות">
-      <div className="te-form">
-        <label className="te-field">
-          סוג
+  const inner = (
+    <div className="te-form">
+      <label className="te-field">
+        סוג
           <select value={type} onChange={(e) => setType(e.target.value as AbsenceType)}>
             {(Object.keys(TYPE_LABELS) as AbsenceType[]).map((t) => (
               <option key={t} value={t}>
@@ -155,7 +168,8 @@ export function ReportAbsenceForm({
             ))}
           </ul>
         )}
-      </div>
-    </Card>
+    </div>
   );
+
+  return bare ? inner : <Card title="דיווח היעדרות">{inner}</Card>;
 }

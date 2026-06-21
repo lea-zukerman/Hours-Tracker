@@ -8,10 +8,13 @@ import { useTimeEntries } from '../../app/hooks/useTimeEntries.ts';
 import { LOCAL_USER_ID } from '../../data/LocalStorageRepository.ts';
 import { buildShift, shiftLocalTimes } from './shiftInstants.ts';
 import { validationMessage } from './messages.ts';
+import { EntryCalendar } from './EntryCalendar.tsx';
+import { ReportAbsenceForm } from '../absences/ReportAbsenceForm.tsx';
 
 const DEFAULT_ZONE = 'Asia/Jerusalem';
 
 type Mode = 'shifts' | 'total';
+type Kind = 'hours' | 'absence';
 interface Row {
   start: string;
   end: string;
@@ -28,10 +31,12 @@ export function ManualEntryForm({
   date: initialDate,
   zone = DEFAULT_ZONE,
   onClose,
+  initialKind = 'hours',
 }: {
   date: IsoDate;
   zone?: string;
   onClose?: () => void;
+  initialKind?: Kind;
 }) {
   const { settings } = useSettings();
   const [date, setDate] = useState(initialDate);
@@ -39,6 +44,7 @@ export function ManualEntryForm({
   const { entries, upsertEntry, deleteEntry } = useTimeEntries(month);
   const existing = entries.find((e) => e.date === date);
 
+  const [kind, setKind] = useState<Kind>(initialKind);
   const [mode, setMode] = useState<Mode>('shifts');
   const [rows, setRows] = useState<Row[]>([{ start: '', end: '' }]);
   const [breakStr, setBreakStr] = useState('0');
@@ -122,11 +128,24 @@ export function ManualEntryForm({
   return (
     <Card title="דיווח ידני">
       <div className="te-form">
-        <label className="te-field">
-          תאריך
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        </label>
+        <div className="te-field">
+          <span className="label">בחר/י יום</span>
+          <EntryCalendar selected={date} onSelect={setDate} />
+        </div>
 
+        <div className="te-modes" role="group" aria-label="סוג דיווח">
+          <Button variant={kind === 'hours' ? 'primary' : 'ghost'} onClick={() => setKind('hours')}>
+            דיווח שעות
+          </Button>
+          <Button variant={kind === 'absence' ? 'primary' : 'ghost'} onClick={() => setKind('absence')}>
+            🌴 דיווח היעדרות
+          </Button>
+        </div>
+
+        {kind === 'absence' ? (
+          <ReportAbsenceForm bare date={date} month={month} onClose={onClose} />
+        ) : (
+          <>
         <div className="te-modes" role="group" aria-label="אופן הדיווח">
           <Button variant={mode === 'shifts' ? 'primary' : 'ghost'} onClick={() => setMode('shifts')}>
             לפי שעות
@@ -221,6 +240,8 @@ export function ManualEntryForm({
             </Button>
           )}
         </div>
+          </>
+        )}
       </div>
     </Card>
   );

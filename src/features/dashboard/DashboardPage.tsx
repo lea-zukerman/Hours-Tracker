@@ -6,7 +6,6 @@ import { useTimeEntries } from '../../app/hooks/useTimeEntries.ts';
 import { useAbsences } from '../../app/hooks/useAbsences.ts';
 import { useClock } from '../../app/hooks/useClock.ts';
 import { ManualEntryForm } from '../timeEntry/ManualEntryForm.tsx';
-import { ReportAbsenceForm } from '../absences/ReportAbsenceForm.tsx';
 import { AlertsBanner } from '../alerts/AlertsBanner.tsx';
 import { TodayCard } from './TodayCard.tsx';
 import { MonthCard } from './MonthCard.tsx';
@@ -52,35 +51,35 @@ export function DashboardPage({
   const { entries, isLoading: entriesLoading } = useTimeEntries(month);
   const { absences, isLoading: absencesLoading } = useAbsences(month);
   const [showEntry, setShowEntry] = useState(false);
-  const [showAbsence, setShowAbsence] = useState(false);
+  const [entryKind, setEntryKind] = useState<'hours' | 'absence'>('hours');
 
   if (entriesLoading || absencesLoading) {
     return <p className="dashboard__loading">טוען…</p>;
   }
 
   const empty = entries.length === 0 && absences.length === 0;
+  const openEntry = (kind: 'hours' | 'absence') => {
+    setEntryKind(kind);
+    setShowEntry(true);
+  };
 
   return (
     <div className="dashboard-page">
       <AlertsBanner month={month} today={resolvedToday} zone={zone} />
 
       <div className="dashboard__actions">
-        <Button variant="ghost" onClick={() => setShowEntry((v) => !v)}>
+        <Button variant="ghost" onClick={() => (showEntry ? setShowEntry(false) : openEntry('hours'))}>
           {showEntry ? 'סגור' : '➕ הוספה ידנית'}
-        </Button>
-        <Button variant="ghost" onClick={() => setShowAbsence((v) => !v)}>
-          {showAbsence ? 'סגור' : '🌴 דווח היעדרות'}
         </Button>
       </div>
 
       {showEntry && (
-        <ManualEntryForm date={resolvedToday} zone={zone} onClose={() => setShowEntry(false)} />
-      )}
-      {showAbsence && (
-        <ReportAbsenceForm
+        <ManualEntryForm
+          key={entryKind}
           date={resolvedToday}
-          month={month}
-          onClose={() => setShowAbsence(false)}
+          zone={zone}
+          initialKind={entryKind}
+          onClose={() => setShowEntry(false)}
         />
       )}
 
@@ -90,7 +89,7 @@ export function DashboardPage({
         <div className="dashboard">
           <TodayCard zone={zone} today={resolvedToday} />
           <MonthCard month={month} today={resolvedToday} zone={zone} />
-          <AbsencesSummaryCard month={month} onReport={() => setShowAbsence(true)} />
+          <AbsencesSummaryCard month={month} onReport={() => openEntry('absence')} />
         </div>
       )}
     </div>
