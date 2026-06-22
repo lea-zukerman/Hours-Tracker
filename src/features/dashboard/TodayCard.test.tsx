@@ -23,9 +23,9 @@ describe('TodayCard', () => {
     expect(await screen.findByText('8:36')).toBeInTheDocument();
     expect(screen.getByText(/נשאר/)).toBeInTheDocument();
 
-    // Start → button flips to "stop" and the live session clock renders.
+    // Start → button flips to "stop" and the live "running" status renders.
     await user.click(screen.getByRole('button', { name: /התחל/ }));
-    expect(await screen.findByText(/רץ ·/)).toBeInTheDocument();
+    expect(await screen.findByText('רץ')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /עצור/ })).toBeInTheDocument();
   });
 });

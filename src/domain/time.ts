@@ -26,9 +26,9 @@ export function isWorkDay(isoDate: IsoDate, settings: Settings): boolean {
  * @param shift the shift; `end: null` means the clock is still running
  * @param _zone IANA zone — part of the contract for signature consistency,
  *              but the duration itself is zone-independent (see above).
- * @returns net minutes; 0 for an open shift or invalid/zero-length input.
+ * @returns net seconds; 0 for an open shift or invalid/zero-length input.
  */
-export function netShiftMinutes(shift: Shift, _zone: string): Minutes {
+export function netShiftSeconds(shift: Shift, _zone: string): number {
   // Open shift: a pure function can't measure a running clock without "now".
   // The live display is the caller's concern (useClock, Milestone 3.5).
   if (shift.end === null) return 0;
@@ -37,9 +37,13 @@ export function netShiftMinutes(shift: Shift, _zone: string): Minutes {
   const end = DateTime.fromISO(shift.end, { zone: 'utc' });
   if (!start.isValid || !end.isValid) return 0;
 
-  const minutes = end.diff(start, 'minutes').minutes;
-  if (minutes <= 0) return 0; // out <= in
-  return Math.round(minutes);
+  const seconds = Math.round(end.diff(start, 'seconds').seconds);
+  return seconds > 0 ? seconds : 0; // out <= in → 0
+}
+
+/** Net minutes for a shift — the whole-minute rounding used in all calculations. */
+export function netShiftMinutes(shift: Shift, zone: string): Minutes {
+  return Math.round(netShiftSeconds(shift, zone) / 60);
 }
 
 /**
@@ -81,5 +85,22 @@ export function entryWorkedMinutes(
   const presence = entry.shifts.reduce((sum, shift) => sum + netShiftMinutes(shift, zone), 0);
   const autoBreak = autoBreakMinutes(presence, settings);
   const worked = presence - entry.breakMinutes - autoBreak;
+  return Math.max(0, worked);
+}
+
+/**
+ * Net worked **seconds** for one day's entry — the exact figure the live "Today"
+ * card shows (SPEC §3.0), so a short session reads as its true time rather than
+ * rounding to 0. Same shape as entryWorkedMinutes but seconds-precise; breaks
+ * are in minutes, converted to seconds.
+ */
+export function entryWorkedSeconds(entry: TimeEntry, settings: Settings, zone: string): number {
+  if (entry.manualMinutes !== undefined) {
+    return Math.max(0, entry.manualMinutes) * 60;
+  }
+
+  const presenceSeconds = entry.shifts.reduce((sum, shift) => sum + netShiftSeconds(shift, zone), 0);
+  const autoBreak = autoBreakMinutes(Math.round(presenceSeconds / 60), settings);
+  const worked = presenceSeconds - entry.breakMinutes * 60 - autoBreak * 60;
   return Math.max(0, worked);
 }

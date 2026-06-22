@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { netShiftMinutes, autoBreakMinutes } from './time.ts';
+import { netShiftMinutes, netShiftSeconds, autoBreakMinutes } from './time.ts';
 import type { Shift } from './types.ts';
 import { makeSettings } from '../test/fixtures.ts';
 
@@ -42,6 +42,17 @@ describe('netShiftMinutes', () => {
 
   it('returns 0 when out equals in', () => {
     expect(netShiftMinutes(shift('2026-06-18T08:00:00.000Z', '2026-06-18T08:00:00.000Z'), ZONE)).toBe(
+      0,
+    );
+  });
+
+  it('keeps exact seconds (netShiftSeconds) for the live display', () => {
+    // 6-second session → 6 seconds exactly (the Today card shows the real time).
+    expect(netShiftSeconds(shift('2026-06-18T08:00:00.000Z', '2026-06-18T08:00:06.000Z'), ZONE)).toBe(
+      6,
+    );
+    // ...while the whole-minute figure used in calculations rounds to 0.
+    expect(netShiftMinutes(shift('2026-06-18T08:00:00.000Z', '2026-06-18T08:00:06.000Z'), ZONE)).toBe(
       0,
     );
   });

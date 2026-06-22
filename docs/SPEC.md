@@ -85,7 +85,7 @@ A web app focused on **immediate clarity** for the individual employee, enabling
 ## 3. Detailed Functional Requirements
 
 ### 3.0 Shared Calculation Definitions
-All calculations are performed internally in **whole minutes (integer)**; display is in **hours:minutes** (e.g., 8:36) or decimal, per settings.
+All calculations are performed internally in **whole minutes (integer)**; display is in **hours:minutes** (e.g., 8:36) or decimal, per settings. The live "Today" clock additionally shows the **exact** elapsed time to the second (seconds precision is kept in the stored timestamps).
 
 ```
 net_day_hours      = (clock_out − clock_in) − breaks
