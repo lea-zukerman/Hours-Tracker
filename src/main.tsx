@@ -2,7 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { App } from './app/App.tsx';
-import { AppProviders } from './app/state/AppProviders.tsx';
+import { UserDataProviders } from './app/state/UserDataProviders.tsx';
 import { supabase } from './data/supabaseClient.ts';
 import { SupabaseAuthService } from './auth/SupabaseAuthService.ts';
 import { AuthProvider } from './auth/AuthContext.tsx';
@@ -34,9 +34,9 @@ if (!supabase) {
       <BrowserRouter>
         <AuthProvider service={authService}>
           <AuthGate>
-            <AppProviders>
+            <UserDataProviders client={supabase}>
               <App />
-            </AppProviders>
+            </UserDataProviders>
           </AuthGate>
         </AuthProvider>
       </BrowserRouter>
