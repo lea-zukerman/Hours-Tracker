@@ -160,7 +160,7 @@
   - **Deps:** T5, T13
   - **Out of scope:** field-level conflict merge (future)
 
-- [ ] **T16 — Local → cloud migration**
+- [x] **T16 — Local → cloud migration**
   - **Goal:** carry existing local data into the cloud account
   - **Covers:** first-login prompt → `exportAll()` (local) → `importAll()` (Supabase)
   - **Design:** [DESIGN.md §9.3](DESIGN.md)
@@ -177,4 +177,4 @@
 - [ ] Every [SPEC.md §6](SPEC.md) edge case handled or explicitly marked out of scope.
 - [x] Dashboard correctly shows "left today / left this month"; alerts fire under defined conditions (AlertsBanner, T12).
 - [x] CSV export and JSON backup work end-to-end (T11).
-- [ ] *(Sync phase)* Login + same data on two devices + local→cloud migration.
+- [x] *(Sync phase)* Login + same data on two devices + local→cloud migration.
