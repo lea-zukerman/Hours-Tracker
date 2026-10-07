@@ -3,6 +3,7 @@ import { he } from '../i18n/he.ts';
 import { DashboardPage } from '../features/dashboard/DashboardPage.tsx';
 import { ReportsPage } from '../features/reports/ReportsPage.tsx';
 import { SettingsPage } from '../features/settings/SettingsPage.tsx';
+import { AccountMenu } from '../features/auth/AccountMenu.tsx';
 
 export function App() {
   return (
@@ -14,6 +15,7 @@ export function App() {
           <NavLink to="/reports">דוחות</NavLink>
           <NavLink to="/settings">הגדרות</NavLink>
         </nav>
+        <AccountMenu />
       </header>
 
       <Routes>

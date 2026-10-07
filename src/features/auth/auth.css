@@ -1,0 +1,36 @@
+/* Auth screens (spec §3.2). */
+
+.auth-page {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-6) var(--space-4);
+}
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+}
+.auth-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+.auth-error {
+  margin: 0;
+  color: var(--danger);
+}
+.auth-notice {
+  margin: 0;
+  color: var(--positive);
+}
+.auth-loading {
+  text-align: center;
+  color: var(--muted);
+  padding: var(--space-6);
+}
+.account-menu {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
