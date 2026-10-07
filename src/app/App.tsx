@@ -4,6 +4,7 @@ import { DashboardPage } from '../features/dashboard/DashboardPage.tsx';
 import { ReportsPage } from '../features/reports/ReportsPage.tsx';
 import { SettingsPage } from '../features/settings/SettingsPage.tsx';
 import { AccountMenu } from '../features/auth/AccountMenu.tsx';
+import { MfaCard } from '../features/settings/MfaCard.tsx';
 
 export function App() {
   return (
@@ -21,7 +22,15 @@ export function App() {
       <Routes>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/reports" element={<ReportsPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
+        <Route
+          path="/settings"
+          element={
+            <>
+              <SettingsPage />
+              <MfaCard />
+            </>
+          }
+        />
       </Routes>
     </main>
   );
