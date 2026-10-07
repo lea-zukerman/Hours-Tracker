@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
 import { LocalStorageRepository } from './LocalStorageRepository.ts';
 import { migrateLocalToCloud, pendingLocalData } from './migrateLocalToCloud.ts';
+import { ACCOUNT_NOT_EMPTY } from './Repository.ts';
 import { memoryStorage } from '../test/memoryStorage.ts';
 import { makeAbsence, makeEntry } from '../test/fixtures.ts';
 
@@ -40,10 +41,30 @@ describe('migrateLocalToCloud', () => {
     expect((await local.exportAll()).entries).toEqual([]);
   });
 
+  it('never overwrites data that reached the account after the offer was shown', async () => {
+    const local = await seeded();
+    const cloud = new LocalStorageRepository(memoryStorage());
+    expect(await pendingLocalData(local, cloud)).not.toBeNull(); // offer shown
+    await cloud.upsertEntry(makeEntry({ id: 'phone', date: '2026-06-20' })); // another device / a clock-in
+    await expect(migrateLocalToCloud(local, cloud)).rejects.toThrow(ACCOUNT_NOT_EMPTY);
+    expect((await cloud.exportAll()).entries.map((e) => e.id)).toEqual(['phone']);
+    expect((await local.exportAll()).entries).toHaveLength(2);
+  });
+
+  it('refuses to run when the browser copy is already gone (second tab)', async () => {
+    const cloud = new LocalStorageRepository(memoryStorage());
+    await cloud.upsertEntry(makeEntry({ id: 'moved', date: '2026-06-01' }));
+    const emptyLocal = new LocalStorageRepository(memoryStorage());
+    await expect(migrateLocalToCloud(emptyLocal, cloud)).rejects.toThrow('nothing to move');
+    expect((await cloud.exportAll()).entries.map((e) => e.id)).toEqual(['moved']);
+  });
+
   it('keeps browser data when the move fails', async () => {
     const local = await seeded();
     const cloud = new LocalStorageRepository(memoryStorage());
-    vi.spyOn(cloud, 'importAll').mockRejectedValueOnce(new Error('Supabase: check violation'));
+    vi.spyOn(cloud, 'importIntoEmpty').mockRejectedValueOnce(
+      new Error('Supabase: check violation'),
+    );
     await expect(migrateLocalToCloud(local, cloud)).rejects.toThrow('check violation');
     expect((await local.exportAll()).entries).toHaveLength(2);
   });
@@ -51,7 +72,7 @@ describe('migrateLocalToCloud', () => {
   it('keeps browser data when the cloud copy does not match', async () => {
     const local = await seeded();
     const cloud = new LocalStorageRepository(memoryStorage());
-    vi.spyOn(cloud, 'importAll').mockResolvedValueOnce(); // pretends success, stores nothing
+    vi.spyOn(cloud, 'importIntoEmpty').mockResolvedValueOnce(); // pretends success, stores nothing
     await expect(migrateLocalToCloud(local, cloud)).rejects.toThrow('verification');
     expect((await local.exportAll()).entries).toHaveLength(2);
   });

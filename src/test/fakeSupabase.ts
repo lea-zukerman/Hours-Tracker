@@ -17,7 +17,9 @@ const OK: Result = { data: null, error: null };
 class FakeQuery implements PromiseLike<Result> {
   private readonly filters: Array<(row: Row) => boolean> = [];
   private single = false;
-  private orderColumn: string | null = null;
+  private readonly orderColumns: string[] = [];
+  private rangeFrom = 0;
+  private rangeTo = Infinity;
 
   constructor(
     private readonly db: FakeSupabase,
@@ -38,7 +40,12 @@ class FakeQuery implements PromiseLike<Result> {
     return this;
   }
   order(column: string) {
-    this.orderColumn = column;
+    this.orderColumns.push(column);
+    return this;
+  }
+  range(from: number, to: number) {
+    this.rangeFrom = from;
+    this.rangeTo = to;
     return this;
   }
   maybeSingle() {
@@ -63,9 +70,16 @@ class FakeQuery implements PromiseLike<Result> {
     const op = this.op;
     switch (op.kind) {
       case 'select': {
-        const out = rows.filter(match).map((r) => ({ ...r }));
-        const col = this.orderColumn;
-        if (col) out.sort((a, b) => String(a[col]).localeCompare(String(b[col])));
+        const sorted = rows.filter(match).map((r) => ({ ...r }));
+        sorted.sort((a, b) => {
+          for (const c of this.orderColumns) {
+            const cmp = String(a[c]).localeCompare(String(b[c]));
+            if (cmp !== 0) return cmp;
+          }
+          return 0;
+        });
+        // Like PostgREST: the requested range, then capped at the server's max-rows.
+        const out = sorted.slice(this.rangeFrom, this.rangeTo + 1).slice(0, this.db.maxRows);
         if (!this.single) return { data: out, error: null };
         if (out.length > 1) return { data: null, error: { message: 'multiple rows returned' } };
         return { data: out[0] ?? null, error: null };
@@ -92,6 +106,8 @@ class FakeQuery implements PromiseLike<Result> {
 export class FakeSupabase {
   private readonly tables = new Map<string, Row[]>();
   private readonly failures: string[] = [];
+  /** PostgREST caps every response at the server's max-rows setting. */
+  maxRows = Infinity;
 
   rows(table: string): Row[] {
     if (!this.tables.has(table)) this.tables.set(table, []);
@@ -128,6 +144,10 @@ export class FakeSupabase {
     if (fn !== 'import_dataset') return { data: null, error: { message: `unknown rpc ${fn}` } };
     const settings = args.p_settings as Row;
     const uid = settings.user_id;
+    const owns = (table: string) => this.rows(table).some((r) => r.user_id === uid);
+    if (args.p_require_empty === true && (owns('time_entries') || owns('absences'))) {
+      return { data: null, error: { message: 'account already has data' } };
+    }
     const replace = (table: string, incoming: Row[]) =>
       this.setRows(table, [
         ...this.rows(table).filter((r) => r.user_id !== uid),

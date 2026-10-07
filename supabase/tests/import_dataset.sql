@@ -79,6 +79,39 @@ do $$ begin
   if (select count(*) from public.time_entries) <> 0 then raise exception 'FAIL 4: import leaked rows to B'; end if;
 end $$;
 
+-- 6. A guarded import (browser → account move) refuses an account that already has data.
+set local request.jwt.claims = '{"sub": "00000000-0000-0000-0000-0000000000a2", "role": "authenticated", "aal": "aal1"}';
+do $$ begin
+  begin
+    perform public.import_dataset(
+      '{"monthly_quota_minutes": 10920, "daily_target_minutes": 516, "job_percent": 100, "work_days": [0],
+        "auto_break_enabled": false, "auto_break_threshold_minutes": 360, "auto_break_deduct_minutes": 30,
+        "hours_format": "hm", "alert_lead_days": 5, "alerts_enabled": {}, "vacation_accrual_per_month": 0,
+        "sick_accrual_per_month": 0, "vacation_opening_balance": 0, "sick_opening_balance": 0}',
+      '[]', '[]', null, true);
+    raise exception 'FAIL 6a: guarded import overwrote an account with data';
+  exception when object_not_in_prerequisite_state then null;
+  end;
+  if (select count(*) from public.time_entries) <> 2 then
+    raise exception 'FAIL 6b: refused guarded import still changed data';
+  end if;
+end $$;
+
+-- 7. …and succeeds into an empty account (B).
+set local request.jwt.claims = '{"sub": "00000000-0000-0000-0000-0000000000b2", "role": "authenticated", "aal": "aal1"}';
+select public.import_dataset(
+  '{"monthly_quota_minutes": 10920, "daily_target_minutes": 516, "job_percent": 100, "work_days": [0],
+    "auto_break_enabled": false, "auto_break_threshold_minutes": 360, "auto_break_deduct_minutes": 30,
+    "hours_format": "hm", "alert_lead_days": 5, "alerts_enabled": {}, "vacation_accrual_per_month": 0,
+    "sick_accrual_per_month": 0, "vacation_opening_balance": 0, "sick_opening_balance": 0}',
+  '[{"id": "88888888-8888-8888-8888-888888888888", "date": "2026-12-01", "shifts": [], "break_minutes": 0}]',
+  '[]', null, true);
+do $$ begin
+  if (select count(*) from public.time_entries) <> 1 then
+    raise exception 'FAIL 7: guarded import into an empty account did not import';
+  end if;
+end $$;
+
 -- 5. anon cannot call it.
 reset role;
 set local role anon;

@@ -52,6 +52,16 @@ describe('SupabaseRepository specifics', () => {
     );
   });
 
+  it('exports every row even when the API caps each response (PostgREST max-rows)', async () => {
+    const { fake, repo } = newRepo();
+    fake.maxRows = 3;
+    for (let day = 1; day <= 7; day++) {
+      await repo.upsertEntry(makeEntry({ id: `e${day}`, date: `2026-06-0${day}` }));
+    }
+    const { entries } = await repo.exportAll();
+    expect(entries.map((e) => e.id)).toEqual(['e1', 'e2', 'e3', 'e4', 'e5', 'e6', 'e7']);
+  });
+
   it('returns the profile with the session email as the user', async () => {
     const { repo } = newRepo();
     expect(await repo.getUser()).toEqual({

@@ -33,12 +33,22 @@ describe('LocalDataMigration', () => {
 
   it('shows a retryable error and keeps browser data when the move fails', async () => {
     const { local, cloud } = await setup();
-    vi.spyOn(cloud, 'importAll').mockRejectedValueOnce(new Error('Supabase: down'));
+    vi.spyOn(cloud, 'importIntoEmpty').mockRejectedValueOnce(new Error('Supabase: down'));
     fireEvent.click(await screen.findByRole('button', { name: 'העברה לחשבון' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('ההעברה נכשלה');
     expect((await local.exportAll()).entries).toHaveLength(1);
     fireEvent.click(screen.getByRole('button', { name: 'ניסיון נוסף' }));
     expect(await screen.findByRole('status')).toHaveTextContent('הועברו 1 ימי דיווח');
+  });
+
+  it('explains, without a retry, when the account gained data after the offer', async () => {
+    const { local, cloud } = await setup();
+    await screen.findByRole('button', { name: 'העברה לחשבון' });
+    await cloud.upsertEntry(makeEntry({ id: 'phone', date: '2026-06-20' }));
+    fireEvent.click(screen.getByRole('button', { name: 'העברה לחשבון' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('בחשבון כבר יש נתונים');
+    expect(screen.queryByRole('button', { name: 'ניסיון נוסף' })).not.toBeInTheDocument();
+    expect((await local.exportAll()).entries).toHaveLength(1);
   });
 
   it('does not offer when the account already has data', async () => {

@@ -1,5 +1,5 @@
 import type { Absence, ID, IsoDate, Settings, TimeEntry, User } from '../domain/types.ts';
-import type { DatasetSnapshot, Repository } from './Repository.ts';
+import { ACCOUNT_NOT_EMPTY, type DatasetSnapshot, type Repository } from './Repository.ts';
 import { CURRENT_SCHEMA_VERSION } from './serialization.ts';
 import { mergeIntoDay } from './mergeIntoDay.ts';
 
@@ -194,6 +194,13 @@ export class LocalStorageRepository implements Repository {
     this.write(this.keys.entries, snapshot.entries);
     this.write(this.keys.absences, snapshot.absences);
     return Promise.resolve();
+  }
+
+  async importIntoEmpty(snapshot: DatasetSnapshot): Promise<void> {
+    if (this.allEntries().length > 0 || this.allAbsences().length > 0) {
+      throw new Error(ACCOUNT_NOT_EMPTY);
+    }
+    await this.importAll(snapshot);
   }
 
   /** Remove this browser's dataset (after a verified move to the cloud). */

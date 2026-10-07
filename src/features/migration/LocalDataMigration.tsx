@@ -4,6 +4,7 @@ import { Card } from '../../ui/Card.tsx';
 import { Button } from '../../ui/Button.tsx';
 import { useRepository } from '../../app/state/RepositoryContext.tsx';
 import { LocalStorageRepository } from '../../data/LocalStorageRepository.ts';
+import { ACCOUNT_NOT_EMPTY } from '../../data/Repository.ts';
 import {
   migrateLocalToCloud,
   pendingLocalData,
@@ -17,6 +18,7 @@ type Phase =
   | { kind: 'offer'; counts: LocalDataCounts }
   | { kind: 'working'; counts: LocalDataCounts }
   | { kind: 'error'; counts: LocalDataCounts }
+  | { kind: 'conflict' }
   | { kind: 'done'; counts: LocalDataCounts };
 
 const summary = ({ entries, absences }: LocalDataCounts) =>
@@ -48,8 +50,10 @@ export function LocalDataMigration({ local = browserData }: { local?: LocalStora
       const moved = await migrateLocalToCloud(local, cloud);
       await queryClient.invalidateQueries();
       setPhase({ kind: 'done', counts: moved });
-    } catch {
-      setPhase({ kind: 'error', counts });
+    } catch (err) {
+      // The account gained data after the offer (another tab/device): retrying cannot help.
+      const conflict = err instanceof Error && err.message.includes(ACCOUNT_NOT_EMPTY);
+      setPhase(conflict ? { kind: 'conflict' } : { kind: 'error', counts });
     }
   }
 
@@ -62,6 +66,11 @@ export function LocalDataMigration({ local = browserData }: { local?: LocalStora
     <Card title="נתונים מהדפדפן הזה">
       {phase.kind === 'done' ? (
         <p role="status">הועברו {summary(phase.counts)} לחשבון.</p>
+      ) : phase.kind === 'conflict' ? (
+        <p role="alert" className="auth-error">
+          בחשבון כבר יש נתונים ממכשיר אחר, ולכן לא העברנו כדי לא לדרוס אותם. הנתונים בדפדפן לא
+          נמחקו.
+        </p>
       ) : (
         <>
           <p>

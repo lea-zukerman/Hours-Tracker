@@ -19,7 +19,7 @@ export interface RepositorySession {
   email: string;
 }
 
-const ALL_TIME = { from: '0001-01-01', to: '9999-12-31' };
+const PAGE_SIZE = 1000;
 
 /** Throws on a Supabase error so React Query surfaces it — never a silent loss. */
 function unwrap<T>(result: { data: T; error: { message: string } | null }): T {
@@ -156,22 +156,68 @@ export class SupabaseRepository implements Repository {
     const [user, settings, entries, absences] = await Promise.all([
       this.getUser(),
       this.getSettings(),
-      this.listEntries(ALL_TIME),
-      this.listAbsences(ALL_TIME),
+      this.allEntries(),
+      this.allAbsences(),
     ]);
     return { schemaVersion: CURRENT_SCHEMA_VERSION, user, settings, entries, absences };
   }
 
   /** One Postgres function call = one transaction: all replaced, or nothing changes. */
   async importAll(snapshot: DatasetSnapshot): Promise<void> {
+    await this.importDataset(snapshot, false);
+  }
+
+  /** The emptiness check runs inside the same transaction, under a per-user lock. */
+  async importIntoEmpty(snapshot: DatasetSnapshot): Promise<void> {
+    await this.importDataset(snapshot, true);
+  }
+
+  private async importDataset(snapshot: DatasetSnapshot, requireEmpty: boolean): Promise<void> {
     unwrap(
       await this.db.rpc('import_dataset', {
         p_settings: toSettingsRow(snapshot.settings, this.userId) as unknown as Json,
         p_entries: snapshot.entries.map((e) => toEntryRow(e, this.userId)) as unknown as Json,
         p_absences: snapshot.absences.map((a) => toAbsenceRow(a, this.userId)) as unknown as Json,
         p_name: snapshot.user?.name ?? undefined,
+        p_require_empty: requireEmpty,
       }),
     );
+  }
+
+  // PostgREST caps every response at the project's max-rows (1000 by default), so
+  // whole-dataset reads page until an empty page; ordering by id keeps pages stable.
+  private async allEntries(): Promise<TimeEntry[]> {
+    const all: TimeEntry[] = [];
+    for (;;) {
+      const page = unwrap(
+        await this.db
+          .from('time_entries')
+          .select('*')
+          .eq('user_id', this.userId)
+          .order('date')
+          .order('id')
+          .range(all.length, all.length + PAGE_SIZE - 1),
+      );
+      if (!page?.length) return all;
+      all.push(...page.map(fromEntryRow));
+    }
+  }
+
+  private async allAbsences(): Promise<Absence[]> {
+    const all: Absence[] = [];
+    for (;;) {
+      const page = unwrap(
+        await this.db
+          .from('absences')
+          .select('*')
+          .eq('user_id', this.userId)
+          .order('date_from')
+          .order('id')
+          .range(all.length, all.length + PAGE_SIZE - 1),
+      );
+      if (!page?.length) return all;
+      all.push(...page.map(fromAbsenceRow));
+    }
   }
 
   private entryWhere(column: 'id' | 'date', value: string) {

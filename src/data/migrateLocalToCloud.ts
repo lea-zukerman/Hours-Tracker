@@ -29,17 +29,22 @@ export async function pendingLocalData(
 }
 
 /**
- * Copy the browser dataset into the account (one atomic import), check the
- * account now holds the same number of rows, and only then clear the browser
- * copy — on any failure the browser data stays put.
+ * Copy the browser dataset into the account (one atomic import that the server
+ * refuses if the account gained data since the offer — another tab, device or a
+ * clock-in), check the account now holds the same number of rows, and only then
+ * clear the browser copy — on any failure the browser data stays put.
  */
 export async function migrateLocalToCloud(
   local: LocalStorageRepository,
   cloud: Repository,
 ): Promise<LocalDataCounts> {
   const snapshot = await local.exportAll();
-  await cloud.importAll(snapshot);
   const moved = counts(snapshot);
+  if (moved.entries === 0 && moved.absences === 0) {
+    // e.g. a second tab already moved it: importing an empty snapshot would mean nothing good.
+    throw new Error('Migration aborted: nothing to move from this browser');
+  }
+  await cloud.importIntoEmpty(snapshot);
   const stored = counts(await cloud.exportAll());
   if (stored.entries !== moved.entries || stored.absences !== moved.absences) {
     throw new Error('Migration verification failed: cloud counts differ');

@@ -30,7 +30,16 @@ export interface Repository {
   // Whole-dataset backup (DESIGN.md §5; SPEC §3.5, §4.2)
   exportAll(): Promise<DatasetSnapshot>;
   importAll(snapshot: DatasetSnapshot): Promise<void>;
+  /**
+   * Like importAll, but only into an account with no entries and no absences —
+   * checked atomically with the write. Rejects with ACCOUNT_NOT_EMPTY otherwise.
+   * Used by the browser → account move, which must never overwrite cloud data.
+   */
+  importIntoEmpty(snapshot: DatasetSnapshot): Promise<void>;
 }
+
+/** Error message (substring) for importIntoEmpty on an account that has data. */
+export const ACCOUNT_NOT_EMPTY = 'account already has data';
 
 /** A full point-in-time snapshot of the dataset, used for backup/restore. */
 export interface DatasetSnapshot {

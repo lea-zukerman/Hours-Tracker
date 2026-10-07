@@ -1,4 +1,4 @@
-import type { Repository } from '../data/Repository.ts';
+import { ACCOUNT_NOT_EMPTY, type Repository } from '../data/Repository.ts';
 import { defaultSettings } from '../data/LocalStorageRepository.ts';
 import { makeAbsence, makeEntry, makeShift, makeUser } from './fixtures.ts';
 
@@ -113,6 +113,22 @@ export function repositoryContract(name: string, make: () => ContractSubject) {
       const target = s.fresh();
       await target.importAll(snapshot);
       expect(await target.exportAll()).toEqual(snapshot);
+    });
+
+    it('importIntoEmpty refuses an account that already has data, changing nothing', async () => {
+      await s.repo.upsertEntry(entry({ id: 'keep', date: '2026-06-01' }));
+      const snapshot = { ...(await s.repo.exportAll()), entries: [], absences: [] };
+      await expect(s.repo.importIntoEmpty(snapshot)).rejects.toThrow(ACCOUNT_NOT_EMPTY);
+      expect((await s.repo.listEntries(JUNE)).map((e) => e.id)).toEqual(['keep']);
+    });
+
+    it('importIntoEmpty imports into an empty account', async () => {
+      const snapshot = {
+        ...(await s.repo.exportAll()),
+        entries: [entry({ id: 'e1', date: '2026-06-02' })],
+      };
+      await s.repo.importIntoEmpty(snapshot);
+      expect((await s.repo.listEntries(JUNE)).map((e) => e.id)).toEqual(['e1']);
     });
 
     it('importAll replaces existing entries and absences', async () => {
