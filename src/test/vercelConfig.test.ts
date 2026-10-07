@@ -51,6 +51,19 @@ describe('vercel.json security headers', () => {
     expect(p.get('connect-src')).toContain('wss://*.supabase.co');
     expect(p.get('form-action')).toContain('https://checkout.stripe.com');
   });
+
+  it('CSP never loosens to unsafe-* keywords or bare scheme sources', () => {
+    for (const [directive, sources] of csp()) {
+      for (const source of sources.split(' ').filter(Boolean)) {
+        // data: images are intentional (inline SVG icons, the 2FA QR code).
+        if (directive === 'img-src' && source === 'data:') continue;
+        expect(source, `${directive} must not allow ${source}`).not.toMatch(/^'unsafe-/);
+        expect(source, `${directive} must not allow any host on ${source}`).not.toMatch(
+          /^[a-z]+:$/,
+        );
+      }
+    }
+  });
 });
 
 describe('vercel.json SPA rewrite', () => {
