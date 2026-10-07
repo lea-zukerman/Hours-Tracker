@@ -14,8 +14,9 @@ delete from public.time_entries where id = '11111111-1111-1111-1111-111111111111
 
 -- 1. Insert, update and delete were each recorded for A, with the row id.
 do $$ begin
+  -- `is distinct from`, not `<>`: array_agg over zero rows is NULL, which `<>` would let pass.
   if (select array_agg(action order by id) from public.audit_log where table_name = 'time_entries')
-     <> array['insert', 'update', 'delete'] then
+     is distinct from array['insert', 'update', 'delete'] then
     raise exception 'FAIL 1: expected insert/update/delete audit rows';
   end if;
   if exists (select 1 from public.audit_log where row_id <> '11111111-1111-1111-1111-111111111111' and table_name = 'time_entries') then
@@ -56,6 +57,7 @@ end $$;
 
 -- 4. Deleting A's account cascades their data and keeps the audit trail.
 reset role;
+set local request.jwt.claims = ''; -- no caller: rows must be attributed to their owner (A)
 insert into public.absences (user_id, date_from, date_to, type)
   values ('00000000-0000-0000-0000-0000000000a1', '2026-10-05', '2026-10-05', 'sick');
 delete from auth.users where id = '00000000-0000-0000-0000-0000000000a1';
@@ -63,8 +65,10 @@ do $$ begin
   if exists (select 1 from public.absences where user_id = '00000000-0000-0000-0000-0000000000a1') then
     raise exception 'FAIL 4a: user data not deleted';
   end if;
-  if (select count(*) from public.audit_log where user_id = '00000000-0000-0000-0000-0000000000a1') < 4 then
-    raise exception 'FAIL 4b: audit trail lost on account deletion';
+  -- A's trail: profile insert, time_entries insert/update/delete, absences insert,
+  -- then the cascade's profile delete and absences delete = 7.
+  if (select count(*) from public.audit_log where user_id = '00000000-0000-0000-0000-0000000000a1') <> 7 then
+    raise exception 'FAIL 4b: audit trail lost or misattributed on account deletion';
   end if;
 end $$;
 

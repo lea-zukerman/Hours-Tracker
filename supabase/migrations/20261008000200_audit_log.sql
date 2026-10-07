@@ -1,5 +1,6 @@
 -- Audit trail of data changes (spec §3.2). Logins are audited by Supabase Auth
--- itself (auth.audit_log_entries). user_id has no FK on purpose: Israel's Data
+-- itself (its log stream; DB persistence via auth.audit_log_entries is a project
+-- setting, enabled with the Day 4 privacy work). user_id has no FK on purpose: Israel's Data
 -- Security Regulations require keeping access logs >= 24 months, so rows outlive
 -- the account; they hold a pseudonymous id only.
 

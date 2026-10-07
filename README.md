@@ -23,7 +23,7 @@ HTTP hardening is defined in [`vercel.json`](vercel.json): strict CSP (no inline
 - Supabase Auth (EU region, Frankfurt): verified email, password policy (10+ chars, mixed case, digit, symbol), optional TOTP 2FA.
 - Every table has Row-Level Security (`user_id = auth.uid()`); once a user enables 2FA, restrictive policies require an `aal2` session at the database level.
 - Sign-up requires explicit privacy consent (UI + database trigger); `profiles.plan` is not user-writable.
-- Data changes are written to an immutable per-user `audit_log`; logins are in Supabase Auth's audit log.
+- Data changes are written to an immutable per-user `audit_log`. Logins are captured by Supabase Auth's log stream (short retention on the Free plan); persisting them in the database for long-term retention is scheduled for the privacy work (Day 4).
 - Security tests: [`supabase/tests/`](supabase/tests/) — see [supabase/README.md](supabase/README.md).
 
 > Note: until custom SMTP is configured, confirmation emails are delivered only to project members.
