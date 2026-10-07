@@ -1,6 +1,7 @@
 import type { Absence, ID, IsoDate, Settings, TimeEntry, User } from '../domain/types.ts';
 import type { DatasetSnapshot, Repository } from './Repository.ts';
 import { CURRENT_SCHEMA_VERSION } from './serialization.ts';
+import { mergeIntoDay } from './mergeIntoDay.ts';
 
 /** Single-user local id — Supabase replaces this with auth.uid() (9.1). */
 export const LOCAL_USER_ID = 'local';
@@ -48,6 +49,7 @@ export class LocalStorageRepository implements Repository {
     entries: string;
     absences: string;
   };
+  private readonly migrationDismissedKey: string;
 
   constructor(
     private readonly storage: Storage = localStorage,
@@ -59,6 +61,7 @@ export class LocalStorageRepository implements Repository {
       entries: `${namespace}:entries`,
       absences: `${namespace}:absences`,
     };
+    this.migrationDismissedKey = `${namespace}:migration-dismissed`;
   }
 
   // ----- low-level JSON helpers -----
@@ -126,14 +129,7 @@ export class LocalStorageRepository implements Repository {
     } else {
       const byDate = entries.findIndex((e) => e.date === entry.date);
       if (byDate >= 0) {
-        const existing = entries[byDate];
-        entries[byDate] = {
-          ...existing,
-          shifts: [...existing.shifts, ...entry.shifts],
-          breakMinutes: existing.breakMinutes + entry.breakMinutes,
-          manualMinutes: entry.manualMinutes ?? existing.manualMinutes,
-          note: entry.note ?? existing.note,
-        };
+        entries[byDate] = mergeIntoDay(entries[byDate], entry);
       } else {
         entries.push(entry);
       }
@@ -144,7 +140,10 @@ export class LocalStorageRepository implements Repository {
   }
 
   deleteEntry(id: ID): Promise<void> {
-    this.write(this.keys.entries, this.allEntries().filter((e) => e.id !== id));
+    this.write(
+      this.keys.entries,
+      this.allEntries().filter((e) => e.id !== id),
+    );
     return Promise.resolve();
   }
 
@@ -171,7 +170,10 @@ export class LocalStorageRepository implements Repository {
   }
 
   deleteAbsence(id: ID): Promise<void> {
-    this.write(this.keys.absences, this.allAbsences().filter((a) => a.id !== id));
+    this.write(
+      this.keys.absences,
+      this.allAbsences().filter((a) => a.id !== id),
+    );
     return Promise.resolve();
   }
 
@@ -192,6 +194,19 @@ export class LocalStorageRepository implements Repository {
     this.write(this.keys.entries, snapshot.entries);
     this.write(this.keys.absences, snapshot.absences);
     return Promise.resolve();
+  }
+
+  /** Remove this browser's dataset (after a verified move to the cloud). */
+  clear(): void {
+    for (const key of Object.values(this.keys)) this.storage.removeItem(key);
+  }
+
+  isMigrationDismissed(): boolean {
+    return this.storage.getItem(this.migrationDismissedKey) === '1';
+  }
+
+  dismissMigration(): void {
+    this.storage.setItem(this.migrationDismissedKey, '1');
   }
 
   /**

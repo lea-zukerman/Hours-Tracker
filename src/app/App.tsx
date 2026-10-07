@@ -5,6 +5,7 @@ import { ReportsPage } from '../features/reports/ReportsPage.tsx';
 import { SettingsPage } from '../features/settings/SettingsPage.tsx';
 import { AccountMenu } from '../features/auth/AccountMenu.tsx';
 import { MfaCard } from '../features/settings/MfaCard.tsx';
+import { LocalDataMigration } from '../features/migration/LocalDataMigration.tsx';
 
 export function App() {
   return (
@@ -18,6 +19,8 @@ export function App() {
         </nav>
         <AccountMenu />
       </header>
+
+      <LocalDataMigration />
 
       <Routes>
         <Route path="/" element={<DashboardPage />} />

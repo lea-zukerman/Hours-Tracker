@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { LocalStorageRepository, defaultSettings } from './LocalStorageRepository.ts';
 import { makeUser, makeEntry, makeShift, makeAbsence } from '../test/fixtures.ts';
+import { repositoryContract } from '../test/repositoryContract.ts';
 
 /** Minimal in-memory Storage so each test is fully isolated. */
 function memoryStorage(): Storage {
@@ -56,10 +57,18 @@ describe('LocalStorageRepository — entries', () => {
 
   it('merges a second clock-in on the same date into one entry (no duplicate day)', async () => {
     await repo.upsertEntry(
-      makeEntry({ id: 'e1', date: '2026-06-18', shifts: [makeShift('2026-06-18T06:00:00.000Z', '2026-06-18T10:00:00.000Z')] }),
+      makeEntry({
+        id: 'e1',
+        date: '2026-06-18',
+        shifts: [makeShift('2026-06-18T06:00:00.000Z', '2026-06-18T10:00:00.000Z')],
+      }),
     );
     await repo.upsertEntry(
-      makeEntry({ id: 'e2', date: '2026-06-18', shifts: [makeShift('2026-06-18T11:00:00.000Z', '2026-06-18T14:00:00.000Z')] }),
+      makeEntry({
+        id: 'e2',
+        date: '2026-06-18',
+        shifts: [makeShift('2026-06-18T11:00:00.000Z', '2026-06-18T14:00:00.000Z')],
+      }),
     );
 
     const entries = await repo.listEntries({ from: '2026-06-01', to: '2026-06-30' });
@@ -94,8 +103,12 @@ describe('LocalStorageRepository — entries', () => {
 
 describe('LocalStorageRepository — absences', () => {
   it('round-trips and range-filters by overlap', async () => {
-    await repo.upsertAbsence(makeAbsence({ id: 'a1', dateFrom: '2026-06-28', dateTo: '2026-07-02' }));
-    await repo.upsertAbsence(makeAbsence({ id: 'a2', dateFrom: '2026-08-01', dateTo: '2026-08-01' }));
+    await repo.upsertAbsence(
+      makeAbsence({ id: 'a1', dateFrom: '2026-06-28', dateTo: '2026-07-02' }),
+    );
+    await repo.upsertAbsence(
+      makeAbsence({ id: 'a2', dateFrom: '2026-08-01', dateTo: '2026-08-01' }),
+    );
 
     const june = await repo.listAbsences({ from: '2026-06-01', to: '2026-06-30' });
     expect(june.map((a) => a.id)).toEqual(['a1']); // a1 overlaps June, a2 does not
@@ -148,5 +161,30 @@ describe('LocalStorageRepository — backup', () => {
     await fresh.importAll(snapshot);
 
     expect(await fresh.exportAll()).toEqual(snapshot);
+  });
+});
+
+repositoryContract('LocalStorageRepository', () => ({
+  repo: new LocalStorageRepository(memoryStorage()),
+  userId: 'local',
+  email: 'tester@example.com',
+  fresh: () => new LocalStorageRepository(memoryStorage()),
+}));
+
+describe('LocalStorageRepository — migration helpers', () => {
+  it('clear() removes the dataset and remembers nothing else', async () => {
+    const storage = memoryStorage();
+    const local = new LocalStorageRepository(storage);
+    await local.upsertEntry(makeEntry({ id: 'e1' }));
+    local.clear();
+    expect((await local.exportAll()).entries).toEqual([]);
+    expect(storage.length).toBe(0);
+  });
+
+  it('remembers a dismissed migration offer', () => {
+    const local = new LocalStorageRepository(memoryStorage());
+    expect(local.isMigrationDismissed()).toBe(false);
+    local.dismissMigration();
+    expect(local.isMigrationDismissed()).toBe(true);
   });
 });
