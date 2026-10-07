@@ -1,4 +1,4 @@
--- RLS isolation test. Run with Supabase MCP execute_sql; everything rolls back.
+-- RLS isolation test. Paste into Dashboard → SQL Editor and Run; everything rolls back.
 -- Success: one row "rls_isolation: all checks passed". Failure: an exception naming the check.
 begin;
 
