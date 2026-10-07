@@ -25,7 +25,14 @@ function fakeAuth() {
       }),
       listFactors: resolves({ data: { all: [], totp: [] }, error: null }),
       enroll: resolves({
-        data: { id: 'f-new', totp: { qr_code: 'data:image/svg+xml;utf-8,<svg/>', secret: 'SECRET', uri: 'otpauth://x' } },
+        data: {
+          id: 'f-new',
+          totp: {
+            qr_code: 'data:image/svg+xml;utf-8,<svg/>',
+            secret: 'SECRET',
+            uri: 'otpauth://x',
+          },
+        },
         error: null,
       }),
       challengeAndVerify: resolves({ data: {}, error: null }),
@@ -100,7 +107,10 @@ describe('SupabaseAuthService', () => {
 
   it('verifies the login code against the first verified TOTP factor', async () => {
     const auth = fakeAuth();
-    auth.mfa.listFactors.mockResolvedValue({ data: { all: [], totp: [{ id: 'f9' }] }, error: null });
+    auth.mfa.listFactors.mockResolvedValue({
+      data: { all: [], totp: [{ id: 'f9' }] },
+      error: null,
+    });
     expect(await serviceFor(auth).verifyMfa('123456')).toEqual({ ok: true, value: null });
     expect(auth.mfa.challengeAndVerify).toHaveBeenCalledWith({ factorId: 'f9', code: '123456' });
   });
@@ -114,13 +124,22 @@ describe('SupabaseAuthService', () => {
   it('clears abandoned unverified factors before enrolling a new one', async () => {
     const auth = fakeAuth();
     auth.mfa.listFactors.mockResolvedValueOnce({
-      data: { all: [{ id: 'stale', status: 'unverified' }, { id: 'ok', status: 'verified' }], totp: [] },
+      data: {
+        all: [
+          { id: 'stale', status: 'unverified' },
+          { id: 'ok', status: 'verified' },
+        ],
+        totp: [],
+      },
       error: null,
     });
     const result = await serviceFor(auth).startMfaEnrollment();
     expect(auth.mfa.unenroll).toHaveBeenCalledTimes(1);
     expect(auth.mfa.unenroll).toHaveBeenCalledWith({ factorId: 'stale' });
-    expect(auth.mfa.enroll).toHaveBeenCalledWith({ factorType: 'totp', friendlyName: 'Hours Tracker' });
+    expect(auth.mfa.enroll).toHaveBeenCalledWith({
+      factorType: 'totp',
+      friendlyName: 'Hours Tracker',
+    });
     expect(result).toEqual({
       ok: true,
       value: { factorId: 'f-new', qrCodeSvg: 'data:image/svg+xml;utf-8,<svg/>', secret: 'SECRET' },
@@ -129,7 +148,10 @@ describe('SupabaseAuthService', () => {
 
   it('disables 2FA by unenrolling the factor and refreshing the session', async () => {
     const auth = fakeAuth();
-    auth.mfa.listFactors.mockResolvedValue({ data: { all: [], totp: [{ id: 'f9' }] }, error: null });
+    auth.mfa.listFactors.mockResolvedValue({
+      data: { all: [], totp: [{ id: 'f9' }] },
+      error: null,
+    });
     expect(await serviceFor(auth).disableMfa()).toEqual({ ok: true, value: null });
     expect(auth.mfa.unenroll).toHaveBeenCalledWith({ factorId: 'f9' });
     expect(auth.refreshSession).toHaveBeenCalled();
