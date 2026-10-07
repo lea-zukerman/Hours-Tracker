@@ -133,7 +133,7 @@
 
 > Only after the local MVP is solid. Nothing in Phases A–B changes except adding one repository + auth. · **Design:** [DESIGN.md §9](DESIGN.md)
 
-- [ ] **T13 — Supabase project + schema**
+- [x] **T13 — Supabase project + schema**
   - **Goal:** create the cloud database with security
   - **Covers:** tables (settings, time_entries, absences) + RLS (`user_id = auth.uid()`) + `unique(user_id, date)`
   - **Design:** [DESIGN.md §9.2](DESIGN.md)
@@ -142,7 +142,7 @@
   - **Deps:** —
   - **Out of scope:** app wiring
 
-- [ ] **T14 — Auth**
+- [x] **T14 — Auth**
   - **Goal:** login gating the app
   - **Covers:** `<AuthGate>` + login screen (Supabase Auth email/password)
   - **Design:** [DESIGN.md §9.1](DESIGN.md)
@@ -151,7 +151,7 @@
   - **Deps:** T13
   - **Out of scope:** migration (T16)
 
-- [ ] **T15 — `SupabaseRepository`**
+- [x] **T15 — `SupabaseRepository`**
   - **Goal:** implement the `Repository` interface against Supabase
   - **Covers:** all `Repository` methods over Postgres; `updated_at` last-write-wins
   - **Design:** [DESIGN.md §9.3, §9.4](DESIGN.md)

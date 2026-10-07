@@ -6,7 +6,7 @@ Personal work-hours tracker for Israeli employees: live clock, manual entry, abs
 
 ## Stack
 React 19 · TypeScript · Vite · TanStack Query · Luxon · Vitest — deployed on Vercel.
-Planned this week: Supabase (auth + Postgres + RLS), Gmail SMTP email, Stripe (test mode).
+Data: Supabase Postgres (EU) behind the same `Repository` interface as the original LocalStorage version — one contract test suite runs against both. Planned this week: Gmail SMTP email, Stripe (test mode).
 
 ## Scripts
 | Command | What it does |
