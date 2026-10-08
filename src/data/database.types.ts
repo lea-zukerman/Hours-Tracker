@@ -204,6 +204,7 @@ export type Database = {
           p_absences: Json;
           p_entries: Json;
           p_name?: string;
+          p_require_empty?: boolean;
           p_settings: Json;
         };
         Returns: undefined;
