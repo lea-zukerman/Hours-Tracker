@@ -265,7 +265,7 @@ Owner name and contact email are user-chosen values in `src/features/legal/conta
 
 All share `api/_lib/` (http, caller, rate limit, admin client) from the Day 4 plan, plus `ai.ts`, `email/`, `stripe.ts`, and `rights` (the server imports the domain rights module for emails: see note).
 
-> **Note — sharing domain code with `api/`:** email reports need the rights calculation server-side. The domain modules are pure TS but import siblings with `.ts` extensions. The implementation plan must decide one of: (a) the email endpoints receive no precomputed data and the server recomputes using the domain module, made importable by switching `src/domain` imports to extensionless/`.js` style under a shared tsconfig; or (b) a build step bundles `api/` with esbuild. (a) is preferred. The plan's first API task proves it with a deployed smoke test before anything depends on it.
+> **Note — sharing domain code with `api/`:** email reports need the rights calculation server-side. The domain modules are pure TS but import siblings with `.ts` extensions. The implementation plan must decide one of: (a) the email endpoints receive no precomputed data and the server recomputes using the domain module, made importable by switching `src/domain` imports to extensionless/`.js` style under a shared tsconfig; or (b) a build step bundles `api/` with esbuild. (a) is preferred. The rights module (Sunday) is written in the chosen import style from the start, and Monday's plan proves server-side import with a deployed smoke test as its first task, before the email work depends on it.
 
 **Data model (one migration per feature day):**
 - `settings`: `employment_start`, `wage_type`, `wage_amount`, `global_overtime`.
