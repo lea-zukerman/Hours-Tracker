@@ -6,6 +6,7 @@ import { SettingsPage } from '../features/settings/SettingsPage.tsx';
 import { AccountMenu } from '../features/auth/AccountMenu.tsx';
 import { MfaCard } from '../features/settings/MfaCard.tsx';
 import { LocalDataMigration } from '../features/migration/LocalDataMigration.tsx';
+import { LegalFooter } from '../features/legal/LegalFooter.tsx';
 
 export function App() {
   return (
@@ -35,6 +36,8 @@ export function App() {
           }
         />
       </Routes>
+
+      <LegalFooter />
     </main>
   );
 }

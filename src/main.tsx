@@ -6,7 +6,7 @@ import { UserDataProviders } from './app/state/UserDataProviders.tsx';
 import { supabase } from './data/supabaseClient.ts';
 import { SupabaseAuthService } from './auth/SupabaseAuthService.ts';
 import { AuthProvider } from './auth/AuthContext.tsx';
-import { AuthGate } from './features/auth/AuthGate.tsx';
+import { AppRoutes } from './app/AppRoutes.tsx';
 import './ui/tokens.css';
 import './ui/primitives.css';
 import './features/dashboard/dashboard.css';
@@ -33,11 +33,13 @@ if (!supabase) {
     <StrictMode>
       <BrowserRouter>
         <AuthProvider service={authService}>
-          <AuthGate>
-            <UserDataProviders client={supabase}>
-              <App />
-            </UserDataProviders>
-          </AuthGate>
+          <AppRoutes
+            app={
+              <UserDataProviders client={supabase}>
+                <App />
+              </UserDataProviders>
+            }
+          />
         </AuthProvider>
       </BrowserRouter>
     </StrictMode>,

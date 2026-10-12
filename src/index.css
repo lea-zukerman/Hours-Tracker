@@ -366,3 +366,53 @@ input[type='checkbox'] {
   background: #f6f8fb;
   align-items: center;
 }
+/* ---- Legal pages + footer ---- */
+.legal-footer {
+  margin-block: var(--space-6) var(--space-4);
+  text-align: center;
+  font-size: var(--fs-sm);
+}
+.legal-footer nav {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+}
+.legal-footer a {
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 600;
+}
+.legal-footer a:hover {
+  color: var(--brand-1);
+  text-decoration: underline;
+}
+.legal__brand {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+.legal__brand a {
+  text-decoration: none;
+  background: var(--brand-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.legal__body {
+  line-height: 1.75;
+}
+.legal__body h3 {
+  font-size: 1.15rem;
+  margin-block: var(--space-5) var(--space-2);
+  color: var(--ink);
+}
+.legal__body ul {
+  padding-inline-start: 1.2rem;
+  margin: 0;
+}
+.te-checkbox a {
+  color: var(--brand-1);
+  font-weight: 700;
+}

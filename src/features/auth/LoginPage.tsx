@@ -3,12 +3,8 @@ import { Card } from '../../ui/Card.tsx';
 import { Button } from '../../ui/Button.tsx';
 import { useAuth } from '../../auth/AuthContext.tsx';
 import { isStrongPassword } from '../../auth/passwordPolicy.ts';
-import {
-  AUTH_ERROR_MESSAGES,
-  CONFIRM_EMAIL_NOTICE,
-  CONSENT_LABEL,
-  PASSWORD_RULES,
-} from './messages.ts';
+import { LegalFooter } from '../legal/LegalFooter.tsx';
+import { AUTH_ERROR_MESSAGES, CONFIRM_EMAIL_NOTICE, PASSWORD_RULES } from './messages.ts';
 
 type Mode = 'signin' | 'signup';
 
@@ -94,7 +90,17 @@ export function LoginPage() {
                   checked={consent}
                   onChange={(e) => setConsent(e.target.checked)}
                 />
-                {CONSENT_LABEL}
+                <span>
+                  קראתי ואני מסכים/ה ל
+                  <a href="/terms" target="_blank" rel="noopener">
+                    תקנון
+                  </a>{' '}
+                  ול
+                  <a href="/privacy" target="_blank" rel="noopener">
+                    מדיניות הפרטיות
+                  </a>
+                  , ואני בן/בת 18 ומעלה
+                </span>
               </label>
             </>
           )}
@@ -116,6 +122,7 @@ export function LoginPage() {
           {isSignup ? 'כבר יש לך חשבון? להתחברות' : 'אין לך חשבון? להרשמה'}
         </Button>
       </Card>
+      <LegalFooter />
     </div>
   );
 }
