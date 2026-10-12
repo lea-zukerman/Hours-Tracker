@@ -143,7 +143,7 @@ function allowInMemory(userId: string): boolean {
 function productionDeps(): AnalyzeDeps {
   const url = process.env.VITE_SUPABASE_URL;
   const publishableKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  const geminiKey = process.env.GEMINI_API_KEY;
+  const geminiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_KEY;
   if (!url || !publishableKey || !geminiKey) throw new Error('Server misconfigured');
 
   const supabase = createClient(url, publishableKey, {
