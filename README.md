@@ -1,12 +1,15 @@
-# מעקב שעות עבודה — Hours Tracker
+# כל שעה — כל שעה נחשבת (hours-tracker)
 
-Personal work-hours tracker for Israeli employees: live clock, manual entry, absences, monthly quota, alerts, reports.
+שעון נוכחות אישי לעובדים שכירים בישראל: כניסה/יציאה בלחיצה, היעדרויות, מכסה חודשית ויתרה, התראות, דוחות — ו**ניתוח AI של החודש** (Google Gemini) שמסביר בעברית איפה אתם עומדים ומה כדאי לעשות.
+
+Personal work-hours tracker for Israeli employees: live clock, manual entry, absences, monthly quota, alerts, reports, and an AI month analysis (Google Gemini).
 
 **Live:** https://hours-tracker-seven-liart.vercel.app
 
 ## Stack
 React 19 · TypeScript · Vite · TanStack Query · Luxon · Vitest — deployed on Vercel.
-Data: Supabase Postgres (EU) behind the same `Repository` interface as the original LocalStorage version — one contract test suite runs against both. Planned this week: Gmail SMTP email, Stripe (test mode).
+Data: Supabase Postgres (EU) behind the same `Repository` interface as the original LocalStorage version — one contract test suite runs against both.
+AI: `POST /api/analyze-month` (Vercel function) — verifies the Supabase session, accepts only the month's summary numbers (zod strict schema; no names, emails or notes), calls Google Gemini with the key held only in the Vercel environment, rate-limited per user.
 
 ## Scripts
 | Command | What it does |
