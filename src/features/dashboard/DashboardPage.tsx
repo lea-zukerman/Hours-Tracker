@@ -58,8 +58,18 @@ export function DashboardPage({ today, zone = DEFAULT_ZONE }: { today?: string; 
     setShowEntry(true);
   };
 
+  const now = DateTime.fromISO(resolvedToday, { zone }).setLocale('he');
+  const hour = DateTime.now().setZone(zone).hour;
+  const greeting = hour < 12 ? 'בוקר טוב' : hour < 17 ? 'צהריים טובים' : 'ערב טוב';
+
   return (
     <div className="dashboard-page">
+      <section className="hero" aria-label="פתיח">
+        <p className="hero__date">{now.toFormat('cccc, d בMMMM yyyy')}</p>
+        <p className="hero__greeting">{greeting} 👋</p>
+        <p className="hero__sub">כל שעה נחשבת — הנה המצב שלכם החודש.</p>
+      </section>
+
       <AlertsBanner month={month} today={resolvedToday} zone={zone} />
 
       <div className="dashboard__actions">

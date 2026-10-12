@@ -277,3 +277,92 @@ input[type='checkbox'] {
 .dashboard {
   gap: var(--space-5);
 }
+/* ---- Home facelift ---- */
+.dashboard-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: var(--space-6) var(--space-6);
+  border-radius: 24px;
+  color: #fff;
+  background:
+    radial-gradient(420px 220px at 10% 120%, rgba(242, 104, 44, 0.45), transparent 70%),
+    linear-gradient(135deg, #0e7c86 0%, #3b5bcf 60%, #5b4fd6 100%);
+  box-shadow: 0 18px 44px rgba(59, 91, 207, 0.28);
+}
+.hero p {
+  margin: 0;
+}
+.hero__date {
+  font-size: var(--fs-sm);
+  opacity: 0.85;
+  font-weight: 600;
+}
+.hero__greeting {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  font-weight: 800;
+  line-height: 1.2;
+  margin-block: var(--space-1) !important;
+}
+.hero__sub {
+  font-size: 1.05rem;
+  opacity: 0.92;
+}
+
+/* Today card = the dark "instrument" */
+.ht-card:has(.today) {
+  background: linear-gradient(160deg, #12333a 0%, #173f5f 100%);
+  border-color: transparent;
+  color: #f4f7f6;
+}
+.ht-card:has(.today) .ht-card__title {
+  color: #f4f7f6;
+}
+.ht-card:has(.today) .ht-ring__track {
+  stroke: rgba(255, 255, 255, 0.15);
+}
+.ht-card:has(.today) .label,
+.ht-card:has(.today) .ht-ring__center span:not(.num) {
+  color: #bfd8d5;
+}
+.ht-card:has(.today) .ht-btn--ghost {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Month: gradient headline number + stat tiles */
+.month__worked {
+  background: var(--brand-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.month__stats {
+  gap: var(--space-3);
+}
+.month__stat {
+  flex: 1;
+  min-inline-size: 110px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--brand-1) 5%, #f6f8fb);
+}
+.month__forecast {
+  background: color-mix(in srgb, var(--brand-2) 8%, #fff);
+  border-inline-start: 4px solid var(--brand-2);
+  font-weight: 600;
+}
+
+/* Absences: each type as a tile */
+.absences__row {
+  padding: var(--space-3) var(--space-4);
+  border-radius: 14px;
+  background: #f6f8fb;
+  align-items: center;
+}
