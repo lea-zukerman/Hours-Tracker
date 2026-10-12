@@ -133,3 +133,8 @@
   font-size: var(--fs-h1);
   color: var(--muted);
 }
+
+.ai-card__text {
+  white-space: pre-line;
+  line-height: 1.7;
+}

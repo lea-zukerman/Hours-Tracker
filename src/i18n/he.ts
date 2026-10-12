@@ -7,7 +7,7 @@
  * features land. The shape is `Record<string, string>`.
  */
 export const he = {
-  appTitle: 'מעקב שעות עבודה',
+  appTitle: 'כל שעה',
 } as const;
 
 export type Strings = typeof he;

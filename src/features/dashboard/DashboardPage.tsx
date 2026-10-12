@@ -10,6 +10,7 @@ import { AlertsBanner } from '../alerts/AlertsBanner.tsx';
 import { TodayCard } from './TodayCard.tsx';
 import { MonthCard } from './MonthCard.tsx';
 import { AbsencesSummaryCard } from './AbsencesSummaryCard.tsx';
+import { AiInsightCard } from './AiInsightCard.tsx';
 
 const DEFAULT_ZONE = 'Asia/Jerusalem';
 
@@ -38,13 +39,7 @@ function EmptyState({ zone }: { zone: string }) {
  *
  * `today`/`zone` are injectable for deterministic tests.
  */
-export function DashboardPage({
-  today,
-  zone = DEFAULT_ZONE,
-}: {
-  today?: string;
-  zone?: string;
-}) {
+export function DashboardPage({ today, zone = DEFAULT_ZONE }: { today?: string; zone?: string }) {
   const resolvedToday = today ?? DateTime.now().setZone(zone).toISODate()!;
   const month = resolvedToday.slice(0, 7);
 
@@ -68,7 +63,10 @@ export function DashboardPage({
       <AlertsBanner month={month} today={resolvedToday} zone={zone} />
 
       <div className="dashboard__actions">
-        <Button variant="ghost" onClick={() => (showEntry ? setShowEntry(false) : openEntry('hours'))}>
+        <Button
+          variant="ghost"
+          onClick={() => (showEntry ? setShowEntry(false) : openEntry('hours'))}
+        >
           {showEntry ? 'סגור' : '➕ הוספה ידנית'}
         </Button>
       </div>
@@ -90,6 +88,7 @@ export function DashboardPage({
           <TodayCard zone={zone} today={resolvedToday} />
           <MonthCard month={month} today={resolvedToday} zone={zone} />
           <AbsencesSummaryCard month={month} onReport={() => openEntry('absence')} />
+          <AiInsightCard month={month} today={resolvedToday} zone={zone} />
         </div>
       )}
     </div>

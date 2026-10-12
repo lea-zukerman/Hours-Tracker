@@ -63,81 +63,42 @@
 
 ---
 
-### Task 1: Database hardening — MFA policies, bounded jsonb, audit actor, rate limiter
+### Task 1: Database — server-only rate limiter
 
 **Files:**
-- Create: `supabase/tests/hardening.sql`, `supabase/migrations/<version>_day4_hardening.sql`
-- Modify: `supabase/tests/rls_isolation.sql`, `src/data/database.types.ts`
+- Create: `supabase/tests/rate_limit.sql`, `supabase/migrations/<version>_rate_limit.sql`
+- Modify: `src/data/database.types.ts`
 
 **Interfaces:**
-- Consumes: Day 2/3 schema (`private.required_aal()`, `private.audit_row()`, the five `"mfa when enrolled"` policies).
-- Produces: `public.rate_limit_hit(p_key text, p_max int, p_window_seconds int) returns boolean` (true = allowed; executable by `service_role` only). `public.audit_log.actor text` (`'user' | 'system'`). Generated types: `Database['public']['Functions']['rate_limit_hit']` with `Args: { p_key: string; p_max: number; p_window_seconds: number }`, `Returns: boolean`.
+- Consumes: the Day 2 `private` schema.
+- Produces: `public.rate_limit_hit(p_key text, p_max int, p_window_seconds int) returns boolean`. It returns true when the hit is allowed and is executable by `service_role` only. Generated types: `Database['public']['Functions']['rate_limit_hit']` with `Args: { p_key: string; p_max: number; p_window_seconds: number }` and `Returns: boolean`. The AI quota (Monday) and email limits reuse this function.
 
-- [ ] **Step 1: Write the failing SQL test** — `supabase/tests/hardening.sql`
+- [ ] **Step 1: Write the failing SQL test** — `supabase/tests/rate_limit.sql`
 
 ```sql
--- Day 4 hardening test. Paste into Dashboard → SQL Editor and Run; everything rolls back.
--- Success: one row "hardening: all checks passed". Failure: an exception naming the check.
+-- Rate limiter test. Paste into Dashboard → SQL Editor and Run; everything rolls back.
+-- Success: one row "rate_limit: all checks passed". Failure: an exception naming the check.
 begin;
 
 insert into auth.users (id, email, aud, role, raw_user_meta_data) values
   ('00000000-0000-0000-0000-0000000000a4', 'a4@test.local', 'authenticated', 'authenticated', '{"privacy_consent": true}');
 
--- 1. Oversized or malformed shifts are rejected.
-set local role authenticated;
-set local request.jwt.claims = '{"sub": "00000000-0000-0000-0000-0000000000a4", "role": "authenticated", "aal": "aal1"}';
+-- 1. Fixed-window rate limiter: max 2 per window, then refused; a new window resets.
 do $$ begin
-  begin
-    insert into public.time_entries (user_id, date, shifts)
-      values ('00000000-0000-0000-0000-0000000000a4', '2026-10-01',
-              (select jsonb_agg(jsonb_build_object('start', '2026-10-01T06:00:00Z', 'end', null))
-                 from generate_series(1, 25)));
-    raise exception 'FAIL 1a: 25 shifts accepted';
-  exception when check_violation then null;
-  end;
-  begin
-    insert into public.time_entries (user_id, date, shifts)
-      values ('00000000-0000-0000-0000-0000000000a4', '2026-10-01', '{"not": "an array"}');
-    raise exception 'FAIL 1b: non-array shifts accepted';
-  exception when check_violation then null;
-  end;
-end $$;
-
--- 2. The audit log tells user changes from server-side ones.
-insert into public.time_entries (user_id, date, shifts)
-  values ('00000000-0000-0000-0000-0000000000a4', '2026-10-02', '[]');
-reset role;
-set local request.jwt.claims = '{}'; -- no user: a server-side change (e.g. account-deletion cascade)
-delete from public.time_entries where user_id = '00000000-0000-0000-0000-0000000000a4';
-do $$ begin
-  if (select actor from public.audit_log
-      where table_name = 'time_entries' and action = 'insert'
-        and user_id = '00000000-0000-0000-0000-0000000000a4') is distinct from 'user' then
-    raise exception 'FAIL 2a: user change not marked actor=user';
-  end if;
-  if (select actor from public.audit_log
-      where table_name = 'time_entries' and action = 'delete'
-        and user_id = '00000000-0000-0000-0000-0000000000a4') is distinct from 'system' then
-    raise exception 'FAIL 2b: server change not marked actor=system';
-  end if;
-end $$;
-
--- 3. Fixed-window rate limiter: max 2 per window, then refused; a new window resets.
-do $$ begin
-  if not public.rate_limit_hit('test:k', 2, 60) then raise exception 'FAIL 3a: first hit refused'; end if;
-  if not public.rate_limit_hit('test:k', 2, 60) then raise exception 'FAIL 3b: second hit refused'; end if;
-  if public.rate_limit_hit('test:k', 2, 60) then raise exception 'FAIL 3c: third hit allowed'; end if;
+  if not public.rate_limit_hit('test:k', 2, 60) then raise exception 'FAIL 1a: first hit refused'; end if;
+  if not public.rate_limit_hit('test:k', 2, 60) then raise exception 'FAIL 1b: second hit refused'; end if;
+  if public.rate_limit_hit('test:k', 2, 60) then raise exception 'FAIL 1c: third hit allowed'; end if;
   update private.rate_limits set window_start = now() - interval '2 minutes' where key = 'test:k';
-  if not public.rate_limit_hit('test:k', 2, 60) then raise exception 'FAIL 3d: window did not reset'; end if;
+  if not public.rate_limit_hit('test:k', 2, 60) then raise exception 'FAIL 1d: window did not reset'; end if;
 end $$;
 
--- 4. Only the server (service_role) may call the limiter.
+-- 2. Only the server (service_role) may call the limiter.
 set local role authenticated;
 set local request.jwt.claims = '{"sub": "00000000-0000-0000-0000-0000000000a4", "role": "authenticated", "aal": "aal1"}';
 do $$ begin
   begin
     perform public.rate_limit_hit('test:x', 1, 60);
-    raise exception 'FAIL 4a: authenticated can call rate_limit_hit';
+    raise exception 'FAIL 2a: authenticated can call rate_limit_hit';
   exception when insufficient_privilege then null;
   end;
 end $$;
@@ -146,138 +107,32 @@ set local role anon;
 do $$ begin
   begin
     perform public.rate_limit_hit('test:x', 1, 60);
-    raise exception 'FAIL 4b: anon can call rate_limit_hit';
+    raise exception 'FAIL 2b: anon can call rate_limit_hit';
   exception when insufficient_privilege then null;
   end;
 end $$;
 reset role;
 set local role service_role;
 do $$ begin
-  if not public.rate_limit_hit('test:y', 1, 60) then raise exception 'FAIL 4c: service_role refused'; end if;
+  if not public.rate_limit_hit('test:y', 1, 60) then raise exception 'FAIL 2c: service_role refused'; end if;
 end $$;
 reset role;
 
-select 'hardening: all checks passed' as result;
+select 'rate_limit: all checks passed' as result;
 rollback;
 ```
 
 - [ ] **Step 2: User runs it — verify RED**
 
-Ask the user to paste `supabase/tests/hardening.sql` into the SQL Editor and Run.
-Expected: `ERROR: FAIL 1a: 25 shifts accepted`.
+Ask the user to paste `supabase/tests/rate_limit.sql` into the SQL Editor and Run.
+Expected: an error that `public.rate_limit_hit` does not exist.
 
-- [ ] **Step 3: Extend `supabase/tests/rls_isolation.sql`** (regression coverage from the Day 2 review; these pass today and must keep passing). Insert the following **between check 8 and the final `select 'rls_isolation: all checks passed'`**:
-
-```sql
--- 9. Settings are isolated like every other table: B can neither read nor change A's.
-reset role;
-insert into public.settings (user_id, monthly_quota_minutes, daily_target_minutes, job_percent, work_days,
-  auto_break_enabled, auto_break_threshold_minutes, auto_break_deduct_minutes, hours_format, alert_lead_days,
-  alerts_enabled, vacation_accrual_per_month, sick_accrual_per_month, vacation_opening_balance, sick_opening_balance)
-values ('00000000-0000-0000-0000-00000000000a', 10920, 516, 100, '{0,1,2,3,4}', false, 360, 30, 'hm', 5,
-  '{}', 1.5, 1.5, 0, 0);
-set local role authenticated;
-set local request.jwt.claims = '{"sub": "00000000-0000-0000-0000-00000000000b", "role": "authenticated", "aal": "aal1"}';
-do $$ begin
-  if (select count(*) from public.settings) <> 0 then raise exception 'FAIL 9a: B sees A settings'; end if;
-  update public.settings set job_percent = 1;
-end $$;
-reset role;
-do $$ begin
-  if (select job_percent from public.settings where user_id = '00000000-0000-0000-0000-00000000000a') <> 100 then
-    raise exception 'FAIL 9b: B changed A settings';
-  end if;
-end $$;
-
--- 10. anon cannot write either.
-set local role anon;
-do $$ begin
-  begin
-    insert into public.time_entries (user_id, date, shifts)
-      values ('00000000-0000-0000-0000-00000000000a', '2026-10-03', '[]');
-    raise exception 'FAIL 10: anon inserted a row';
-  exception when insufficient_privilege then null;
-  end;
-end $$;
-
--- 11. With 2FA enrolled (check 7), an aal1 session cannot write either.
-reset role;
-set local role authenticated;
-set local request.jwt.claims = '{"sub": "00000000-0000-0000-0000-00000000000a", "role": "authenticated", "aal": "aal1"}';
-do $$ begin
-  begin
-    insert into public.time_entries (user_id, date, shifts)
-      values ('00000000-0000-0000-0000-00000000000a', '2026-10-04', '[]');
-    raise exception 'FAIL 11a: aal1 inserted with 2FA enrolled';
-  exception when insufficient_privilege then null;
-  end;
-  update public.time_entries set note = 'aal1';
-  if found then raise exception 'FAIL 11b: aal1 updated with 2FA enrolled'; end if;
-end $$;
-reset role;
-```
-
-- [ ] **Step 4: Write the migration** — `supabase/migrations/day4_hardening.sql` (renamed with the applied version in Step 6)
+- [ ] **Step 3: Write the migration** — `supabase/migrations/rate_limit.sql` (renamed with the applied version in Step 4)
 
 ```sql
--- Day 4 hardening (spec §3.2): linter-clean MFA policies, bounded jsonb,
--- audit actor, and a server-only rate limiter for /api.
-
--- 1. Same MFA rule, with the JWT read once per statement in the shape the
---    Supabase linter recognises (auth_rls_initplan).
-alter policy "mfa when enrolled" on public.profiles
-  using (array[(select auth.jwt()) ->> 'aal'] <@ (select private.required_aal()));
-alter policy "mfa when enrolled" on public.settings
-  using (array[(select auth.jwt()) ->> 'aal'] <@ (select private.required_aal()));
-alter policy "mfa when enrolled" on public.time_entries
-  using (array[(select auth.jwt()) ->> 'aal'] <@ (select private.required_aal()));
-alter policy "mfa when enrolled" on public.absences
-  using (array[(select auth.jwt()) ->> 'aal'] <@ (select private.required_aal()));
-alter policy "mfa when enrolled" on public.audit_log
-  using (array[(select auth.jwt()) ->> 'aal'] <@ (select private.required_aal()));
-
--- 2. Bounded jsonb: a client could otherwise store megabytes in one row.
---    (CASE, not AND: Postgres does not promise short-circuit evaluation.)
-alter table public.time_entries add constraint time_entries_shifts_bounded check (
-  case when jsonb_typeof(shifts) = 'array'
-    then jsonb_array_length(shifts) <= 24 and pg_column_size(shifts) <= 4096
-    else false end
-);
-alter table public.settings add constraint settings_alerts_bounded check (
-  jsonb_typeof(alerts_enabled) = 'object' and pg_column_size(alerts_enabled) <= 2048
-);
-alter table public.settings add constraint settings_work_days_bounded check (
-  cardinality(work_days) <= 7
-);
-
--- 3. Who made the change: 'user' (signed-in request) or 'system' (server side:
---    account-deletion cascade, sign-up trigger, Stripe webhook on Day 6).
-alter table public.audit_log add column actor text not null default 'user'
-  check (actor in ('user', 'system'));
-
-create or replace function private.audit_row()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  r jsonb := case when tg_op = 'DELETE' then to_jsonb(old) else to_jsonb(new) end;
-begin
-  insert into public.audit_log (user_id, action, table_name, row_id, actor)
-  values (
-    coalesce((select auth.uid()), (r ->> 'user_id')::uuid),
-    lower(tg_op),
-    tg_table_name,
-    coalesce(r ->> 'id', r ->> 'user_id'),
-    case when (select auth.uid()) is null then 'system' else 'user' end
-  );
-  return null;
-end;
-$$;
-
--- 4. Fixed-window rate limiter for /api. The table is in `private` (not exposed
---    by the Data API); only the server's service_role may call the function.
+-- Fixed-window rate limiter for /api (spec §3.2 "rate limiting on /api"). The table
+-- is in `private` (not exposed by the Data API); only the server's service_role
+-- may call the function.
 create table private.rate_limits (
   key text primary key,
   window_start timestamptz not null,
@@ -309,37 +164,18 @@ revoke all on function public.rate_limit_hit(text, int, int) from public, anon, 
 grant execute on function public.rate_limit_hit(text, int, int) to service_role;
 ```
 
-- [ ] **Step 5: Check existing rows satisfy the new constraints** (MCP `execute_sql`, read-only)
+- [ ] **Step 4: Apply.** Use MCP `apply_migration` (name `rate_limit`, query = the file content), then `list_migrations`. Expected: 5 migrations, the last one `rate_limit`. Rename the file to `supabase/migrations/<that version>_rate_limit.sql`. If `apply_migration` is declined, follow the Global Constraints fallback.
 
-```sql
-select
-  (select count(*) from public.time_entries
-    where jsonb_typeof(shifts) <> 'array' or jsonb_array_length(shifts) > 24
-       or pg_column_size(shifts) > 4096) as bad_shifts,
-  (select count(*) from public.settings
-    where jsonb_typeof(alerts_enabled) <> 'object' or pg_column_size(alerts_enabled) > 2048
-       or cardinality(work_days) > 7) as bad_settings;
-```
-Expected: `bad_shifts = 0, bad_settings = 0` (it was 0/0 on 2026-10-08). If not 0, stop and report to the user.
+- [ ] **Step 5: User reruns the test — verify GREEN.** Expected: `rate_limit: all checks passed`.
 
-- [ ] **Step 6: Apply** with MCP `apply_migration` (name `day4_hardening`, query = the file content). Then `list_migrations`. Expected: 5 migrations, the last one `day4_hardening`. Rename the file to `supabase/migrations/<that version>_day4_hardening.sql`. If `apply_migration` is declined, follow the Global Constraints fallback.
+- [ ] **Step 6: Regenerate types.** Write MCP `generate_typescript_types` output to `src/data/database.types.ts`, then run `npx prettier --write src/data/database.types.ts`.
+Check: `git diff src/data/database.types.ts` shows only the new `rate_limit_hit` function. Then `npx tsc -b`. Expected: no errors.
 
-- [ ] **Step 7: User reruns both tests — verify GREEN**
-
-Ask the user to run `supabase/tests/hardening.sql` and then `supabase/tests/rls_isolation.sql` in the SQL Editor.
-Expected: `hardening: all checks passed` and `rls_isolation: all checks passed`.
-
-- [ ] **Step 8: Advisors** — MCP `get_advisors` (`performance`, then `security`).
-Expected: no `auth_rls_initplan` findings. Security shows only `auth_leaked_password_protection` (Pro-plan feature; documented in Task 7).
-
-- [ ] **Step 9: Regenerate types.** Write MCP `generate_typescript_types` output to `src/data/database.types.ts`, then run `npx prettier --write src/data/database.types.ts`.
-Check: `git diff src/data/database.types.ts` shows only the new `actor` fields on `audit_log` and the new `rate_limit_hit` function. Run `npx tsc -b`. Expected: no errors.
-
-- [ ] **Step 10: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add supabase/migrations supabase/tests/hardening.sql supabase/tests/rls_isolation.sql src/data/database.types.ts
-git commit -m "feat(db): bounded jsonb, audit actor, server-only rate limiter; linter-clean MFA policies"
+git add supabase/migrations supabase/tests/rate_limit.sql src/data/database.types.ts
+git commit -m "feat(db): server-only fixed-window rate limiter for /api"
 ```
 
 ---
@@ -351,7 +187,7 @@ git commit -m "feat(db): bounded jsonb, audit actor, server-only rate limiter; l
 - Modify: `tsconfig.json`, `eslint.config.js`, `package.json` (deps), `.env.example`
 
 **Interfaces:**
-- Consumes: `rate_limit_hit` and generated `Database` type (Task 1).
+- Consumes: `rate_limit_hit` and the generated `Database` type (Task 1).
 - Produces: HTTP contract used by Task 3:
   - `POST /api/delete-account`, header `Authorization: Bearer <access token>`, body `{"confirmEmail": string}`.
   - `200 {"ok": true}`: the account and all its data are deleted.
@@ -701,7 +537,7 @@ const HOUR = 3600;
  * POST /api/delete-account: the right to erasure (spec §3.2). Deletes the auth
  * user; profiles, settings, entries and absences cascade (FK on delete cascade).
  * audit_log rows stay (no FK; retention under the Data Security Regulations),
- * recorded with actor = 'system'.
+ * keeping only the pseudonymous user id.
  */
 export function createDeleteAccountHandler(deps: DeleteAccountDeps) {
   return async function handle(request: Request): Promise<Response> {
@@ -1546,493 +1382,39 @@ git commit -m "feat(legal): privacy, terms and accessibility pages, legal footer
 
 ---
 
-### Task 5: Auth robustness — retry instead of endless loading, fail-closed 2FA level, code to disable 2FA
+### Task 5: Secret key, deploy and end-to-end check
 
-**Files:**
-- Modify: `src/auth/AuthContext.tsx`, `src/features/auth/AuthGate.tsx`, `src/features/auth/AuthGate.test.tsx`, `src/auth/AuthService.ts`, `src/auth/SupabaseAuthService.ts`, `src/auth/SupabaseAuthService.test.ts`, `src/test/fakeAuth.ts`, `src/features/settings/MfaCard.tsx`, `src/features/settings/MfaCard.test.tsx`
-
-**Interfaces:**
-- Consumes: `AuthService` from Task 3.
-- Produces: `AuthState` gains `{ status: 'error' }`. `AuthService.disableMfa(code: string): Promise<AuthResult>`. `SupabaseAuthService.getAssurance()` throws when the level cannot be read. `FakeAuthService.failGetSession: boolean`.
-
-- [ ] **Step 1: Write the failing tests**
-
-`src/features/auth/AuthGate.test.tsx`: add
-```tsx
-  it('offers a retry when the server cannot be reached, instead of loading forever', async () => {
-    const service = new FakeAuthService({ signedInAs: 'a@b.co' });
-    service.failGetSession = true;
-    renderGate(service);
-    expect(await screen.findByRole('alert')).toHaveTextContent('אין חיבור לשרת');
-    service.failGetSession = false;
-    fireEvent.click(screen.getByRole('button', { name: 'ניסיון נוסף' }));
-    expect(await screen.findByText('תוכן האפליקציה')).toBeInTheDocument();
-  });
-```
-
-`src/auth/SupabaseAuthService.test.ts`: add
-```ts
-  it('throws when the assurance level cannot be read (never assumes 2FA is off)', async () => {
-    const auth = fakeAuth();
-    auth.mfa.getAuthenticatorAssuranceLevel.mockResolvedValueOnce({
-      data: null,
-      error: { message: 'boom' },
-    });
-    await expect(serviceFor(auth).getAssurance()).rejects.toThrow('boom');
-  });
-
-  it('does not disable 2FA without a valid current code', async () => {
-    const auth = fakeAuth();
-    auth.mfa.listFactors.mockResolvedValue({ data: { all: [], totp: [{ id: 'f9' }] }, error: null });
-    auth.mfa.challengeAndVerify.mockResolvedValueOnce({
-      data: null,
-      error: { code: 'mfa_verification_failed', status: 422, name: 'AuthApiError' },
-    });
-    expect(await serviceFor(auth).disableMfa('000000')).toEqual({ ok: false, error: 'invalid_code' });
-    expect(auth.mfa.unenroll).not.toHaveBeenCalled();
-  });
-```
-Change the existing test `'disables 2FA by unenrolling the factor and refreshing the session'` to call `disableMfa('123456')`, and add this before the `unenroll` assertion:
-```ts
-    expect(auth.mfa.challengeAndVerify).toHaveBeenCalledWith({ factorId: 'f9', code: '123456' });
-```
-
-`src/features/settings/MfaCard.test.tsx`: replace the test `'disables 2FA when it is on'` with
-```tsx
-  it('disables 2FA only with a valid current code', async () => {
-    const service = new FakeAuthService({
-      signedInAs: 'a@b.co',
-      mfaEnrolled: true,
-      mfaPassed: true,
-    });
-    renderCard(service);
-    const codeInput = await screen.findByLabelText('קוד נוכחי מאפליקציית האימות');
-
-    fireEvent.change(codeInput, { target: { value: '000000' } });
-    fireEvent.click(screen.getByRole('button', { name: 'כיבוי אימות דו-שלבי' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('הקוד שגוי');
-    expect(service.mfaEnrolled).toBe(true);
-
-    fireEvent.change(codeInput, { target: { value: FakeAuthService.VALID_CODE } });
-    fireEvent.click(screen.getByRole('button', { name: 'כיבוי אימות דו-שלבי' }));
-    expect(await screen.findByRole('button', { name: 'הפעלת אימות דו-שלבי' })).toBeInTheDocument();
-    expect(service.mfaEnrolled).toBe(false);
-  });
-```
-
-- [ ] **Step 2: Run tests to verify they fail**
-
-Run: `npx vitest run src/auth src/features/auth src/features/settings/MfaCard.test.tsx`
-Expected: FAIL. There is no 'ניסיון נוסף' button, `getAssurance` resolves instead of rejecting, `unenroll` is called despite the wrong code, and there is no code field.
-
-- [ ] **Step 3: Implement**
-
-`src/auth/AuthContext.tsx`: add `| { status: 'error' }` to `AuthState`, and wrap the body of `refresh` in a try/catch:
-```ts
-  const refresh = useCallback(async () => {
-    try {
-      const session = await service.getSession();
-      if (!session) {
-        setState({ status: 'signed_out' });
-        return;
-      }
-      const { current, next } = await service.getAssurance();
-      setState(
-        next === 'aal2' && current !== 'aal2'
-          ? { status: 'mfa_required', session }
-          : { status: 'signed_in', session },
-      );
-    } catch {
-      // Unknown session or 2FA level: show a retry, never the app (fail closed).
-      setState({ status: 'error' });
-    }
-  }, [service]);
-```
-
-`src/features/auth/AuthGate.tsx`:
-```tsx
-import type { ReactNode } from 'react';
-import { useAuth } from '../../auth/AuthContext.tsx';
-import { Button } from '../../ui/Button.tsx';
-import { LoginPage } from './LoginPage.tsx';
-import { MfaChallenge } from './MfaChallenge.tsx';
-import { AUTH_ERROR_MESSAGES } from './messages.ts';
-
-/** Renders the app only for a fully authenticated session (DESIGN.md §9.1). */
-export function AuthGate({ children }: { children: ReactNode }) {
-  const { state, refresh } = useAuth();
-  if (state.status === 'loading') return <p className="auth-loading">טוען…</p>;
-  if (state.status === 'error')
-    return (
-      <div className="auth-loading">
-        <p role="alert">{AUTH_ERROR_MESSAGES.network}</p>
-        <Button onClick={() => void refresh()}>ניסיון נוסף</Button>
-      </div>
-    );
-  if (state.status === 'signed_out') return <LoginPage />;
-  if (state.status === 'mfa_required') return <MfaChallenge />;
-  return <>{children}</>;
-}
-```
-
-`src/auth/AuthService.ts`: change the `disableMfa` declaration to
-```ts
-  /** Requires a fresh code from the authenticator (step-up): an open session alone cannot remove 2FA. */
-  disableMfa(code: string): Promise<AuthResult>;
-```
-
-`src/auth/SupabaseAuthService.ts`:
-```ts
-  async getAssurance() {
-    const { data, error } = await this.auth.mfa.getAuthenticatorAssuranceLevel();
-    // An unknown level must not read as "2FA not required": AuthProvider shows a retry.
-    if (error || !data) throw new Error(`Supabase: ${error?.message ?? 'no assurance level'}`);
-    return { current: level(data.currentLevel), next: level(data.nextLevel) };
-  }
-```
-```ts
-  async disableMfa(code: string): Promise<AuthResult> {
-    const factorId = await this.verifiedFactorId();
-    if (!factorId) return ok(null);
-    const verified = await this.auth.mfa.challengeAndVerify({ factorId, code });
-    if (verified.error) return fail(verified.error);
-    const { error } = await this.auth.mfa.unenroll({ factorId });
-    if (error) return fail(error);
-    await this.auth.refreshSession(); // drop aal2 now, not at the next token refresh
-    return ok(null);
-  }
-```
-
-`src/test/fakeAuth.ts`: add the field `failGetSession = false;` and change these methods:
-```ts
-  async getSession() {
-    if (this.failGetSession) throw new Error('network down');
-    return this.session;
-  }
-```
-```ts
-  async disableMfa(code: string): Promise<AuthResult> {
-    if (code !== FakeAuthService.VALID_CODE) return { ok: false, error: 'invalid_code' };
-    this.mfaEnrolled = false;
-    this.mfaPassed = false;
-    return ok(null);
-  }
-```
-
-`src/features/settings/MfaCard.tsx`: replace `disable` and the `'on'` view:
-```tsx
-  const disable = (e: FormEvent) => {
-    e.preventDefault();
-    void run(async () => {
-      const result = await service.disableMfa(code.trim());
-      if (!result.ok) {
-        setError(AUTH_ERROR_MESSAGES[result.error]);
-        return;
-      }
-      setCode('');
-      setView({ kind: 'off' });
-      await refresh();
-    });
-  };
-```
-```tsx
-      {view.kind === 'on' && (
-        <form className="te-form" onSubmit={disable}>
-          <p role="status">אימות דו-שלבי פעיל</p>
-          <label className="te-field">
-            קוד נוכחי מאפליקציית האימות
-            <input
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              dir="ltr"
-              maxLength={6}
-              required
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-            />
-          </label>
-          <Button type="submit" variant="danger" disabled={pending}>
-            כיבוי אימות דו-שלבי
-          </Button>
-        </form>
-      )}
-```
-
-- [ ] **Step 4: Run tests to verify they pass**
-
-Run: `npx vitest run src/auth src/features/auth src/features/settings`
-Expected: PASS.
-
-- [ ] **Step 5: Full checks and commit**
-
-Run: `npx tsc -b`, `npm run lint`, `npm test`. Expected: all green.
-```bash
-npx prettier --write src/auth/AuthContext.tsx src/auth/AuthService.ts src/auth/SupabaseAuthService.ts src/auth/SupabaseAuthService.test.ts src/features/auth/AuthGate.tsx src/features/auth/AuthGate.test.tsx src/test/fakeAuth.ts src/features/settings/MfaCard.tsx src/features/settings/MfaCard.test.tsx
-git add src/auth src/features/auth src/test/fakeAuth.ts src/features/settings/MfaCard.tsx src/features/settings/MfaCard.test.tsx
-git commit -m "fix(auth): retry instead of endless loading, fail-closed 2FA level, code required to disable 2FA"
-```
-
----
-
-### Task 6: Safe restore and whole-minute validation
-
-**Files:**
-- Modify: `src/domain/validation.ts`, `src/domain/validation.test.ts`, `src/features/reports/ReportsPage.tsx`, `src/features/reports/ReportsPage.test.tsx`
-
-**Interfaces:**
-- Consumes: `parseBackup(json: string): DatasetSnapshot` (`src/data/backup.ts`, existing; throws on malformed input), `Repository.importAll`.
-- Produces: no new exports.
-
-- [ ] **Step 1: Write the failing tests**
-
-`src/domain/validation.test.ts`: add inside `describe('validateEntry', …)`
-```ts
-  it('flags fractional minutes as invalid input (the database stores whole minutes)', () => {
-    const withBreak = makeEntry({
-      shifts: [makeShift('2026-06-18T06:00:00.000Z', '2026-06-18T10:00:00.000Z')],
-      breakMinutes: 7.5,
-    });
-    expect(codes(withBreak)).toContain<ValidationCode>('invalid_input');
-    const manual = makeEntry({ shifts: [], manualMinutes: 90.5 });
-    expect(codes(manual)).toContain<ValidationCode>('invalid_input');
-  });
-```
-
-`src/features/reports/ReportsPage.test.tsx`: add the following. Add imports at the top as needed: `waitFor` from `@testing-library/react`.
-```tsx
-  describe('restore from backup', () => {
-    async function setupWithOneEntry() {
-      const repo = new LocalStorageRepository(memoryStorage());
-      await repo.upsertEntry(makeEntry({ date: '2026-06-10' }));
-      const view = render(<ReportsPage month="2026-06" zone={ZONE} />, {
-        wrapper: createWrapper(repo),
-      });
-      await screen.findByRole('button', { name: /שחזור מגיבוי/ });
-      const input = view.container.querySelector('input[type="file"]') as HTMLInputElement;
-      const choose = (content: string) =>
-        fireEvent.change(input, {
-          target: { files: [new File([content], 'backup.json', { type: 'application/json' })] },
-        });
-      return { repo, choose };
-    }
-
-    it('asks before replacing the data, and cancelling changes nothing', async () => {
-      const { repo, choose } = await setupWithOneEntry();
-      const empty = { ...(await repo.exportAll()), entries: [], absences: [] };
-      choose(JSON.stringify(empty));
-      expect(
-        await screen.findByText(/יחליף את כל הנתונים בחשבון ב-0 ימי דיווח ו-0 היעדרויות/),
-      ).toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: 'ביטול' }));
-      expect((await repo.exportAll()).entries).toHaveLength(1);
-    });
-
-    it('replaces the data after confirmation', async () => {
-      const { repo, choose } = await setupWithOneEntry();
-      const empty = { ...(await repo.exportAll()), entries: [], absences: [] };
-      choose(JSON.stringify(empty));
-      fireEvent.click(await screen.findByRole('button', { name: 'שחזור והחלפה' }));
-      expect(await screen.findByRole('status')).toHaveTextContent('הגיבוי שוחזר');
-      await waitFor(async () => expect((await repo.exportAll()).entries).toHaveLength(0));
-    });
-
-    it('rejects a file that is not a backup and changes nothing', async () => {
-      const { repo, choose } = await setupWithOneEntry();
-      choose('this is not json');
-      expect(await screen.findByRole('alert')).toHaveTextContent('הקובץ אינו גיבוי תקין');
-      expect(screen.queryByRole('button', { name: 'שחזור והחלפה' })).not.toBeInTheDocument();
-      expect((await repo.exportAll()).entries).toHaveLength(1);
-    });
-  });
-```
-
-- [ ] **Step 2: Run tests to verify they fail**
-
-Run: `npx vitest run src/domain/validation.test.ts src/features/reports`
-Expected: FAIL. Fractional values pass validation, there is no confirmation text, and the invalid file throws without showing an alert.
-
-- [ ] **Step 3: Implement**
-
-`src/domain/validation.ts`: `Number.isInteger` also rejects NaN and ±Infinity, so it replaces `Number.isFinite` in both checks:
-```ts
-    if (!Number.isInteger(entry.manualMinutes) || entry.manualMinutes < 0) {
-```
-```ts
-  if (!Number.isInteger(entry.breakMinutes) || entry.breakMinutes < 0) {
-```
-
-`src/features/reports/ReportsPage.tsx`:
-- Replace the `DatasetSnapshot` type import with `import { parseBackup } from '../../data/backup.ts';` and `import type { DatasetSnapshot } from '../../data/Repository.ts';` (both are used).
-- Next to the other hooks, **before** the early `return`, add:
-```tsx
-  const [pendingRestore, setPendingRestore] = useState<DatasetSnapshot | null>(null);
-  const [restoreError, setRestoreError] = useState<string | null>(null);
-  const [restoreNotice, setRestoreNotice] = useState<string | null>(null);
-```
-- Replace `importJson` with:
-```tsx
-  async function chooseBackup(file: File) {
-    setRestoreError(null);
-    setRestoreNotice(null);
-    try {
-      setPendingRestore(parseBackup(await file.text()));
-    } catch {
-      setRestoreError('הקובץ אינו גיבוי תקין של האפליקציה. שום נתון לא השתנה.');
-    }
-  }
-
-  async function confirmRestore() {
-    if (!pendingRestore) return;
-    try {
-      await repository.importAll(pendingRestore);
-      await queryClient.invalidateQueries();
-      setPendingRestore(null);
-      setRestoreNotice('הגיבוי שוחזר.');
-    } catch {
-      setPendingRestore(null);
-      setRestoreError('השחזור נכשל. הנתונים בחשבון לא השתנו.');
-    }
-  }
-```
-- In the file input's `onChange`: call `void chooseBackup(file)` and then `e.target.value = ''` (so the same file can be chosen again).
-- After `.report__actions`, replace the stale "browser only" warning paragraph with:
-```tsx
-        {pendingRestore && (
-          <div className="report__confirm">
-            <p>
-              השחזור יחליף את כל הנתונים בחשבון ב-{pendingRestore.entries.length} ימי דיווח ו-
-              {pendingRestore.absences.length} היעדרויות מהקובץ. להמשיך?
-            </p>
-            <Button variant="danger" onClick={() => void confirmRestore()}>
-              שחזור והחלפה
-            </Button>
-            <Button variant="ghost" onClick={() => setPendingRestore(null)}>
-              ביטול
-            </Button>
-          </div>
-        )}
-        {restoreError && (
-          <p role="alert" className="auth-error">
-            {restoreError}
-          </p>
-        )}
-        {restoreNotice && <p role="status">{restoreNotice}</p>}
-
-        <p className="report__warning">
-          הנתונים נשמרים בחשבון שלכם ומסונכרנים בין המכשירים. גיבוי JSON הוא עותק אישי — מומלץ
-          להוריד אחד מדי פעם.
-        </p>
-```
-Note: the JSX text `ב-{…} ימי דיווח ו-{…} היעדרויות` must render as the single string the test matches. If prettier splits it across lines so that whitespace changes the text, use one template literal: `{`השחזור יחליף את כל הנתונים בחשבון ב-${pendingRestore.entries.length} ימי דיווח ו-${pendingRestore.absences.length} היעדרויות מהקובץ. להמשיך?`}`.
-
-- [ ] **Step 4: Run tests to verify they pass**
-
-Run: `npx vitest run src/domain/validation.test.ts src/features/reports`
-Expected: PASS.
-
-- [ ] **Step 5: Full checks and commit**
-
-Run: `npx tsc -b`, `npm run lint`, `npm test`. Expected: all green.
-```bash
-npx prettier --write src/domain/validation.ts src/domain/validation.test.ts src/features/reports/ReportsPage.tsx src/features/reports/ReportsPage.test.tsx
-git add src/domain/validation.ts src/domain/validation.test.ts src/features/reports/ReportsPage.tsx src/features/reports/ReportsPage.test.tsx
-git commit -m "fix: restore asks first and rejects non-backup files; minutes must be whole"
-```
-
----
-
-### Task 7: Security documents, supply chain, settings, deploy and end-to-end check
-
-**Files:**
-- Create: `docs/security/DATABASE-DEFINITION.md`, `docs/security/SECURITY-PROCEDURE.md`, `.github/dependabot.yml`
-- Modify: `README.md` (Security section), `supabase/README.md`
+**Files:** none (configuration + verification). Results are recorded in the ledger.
 
 **Interfaces:**
 - Consumes: everything above.
-- Produces: the spec §3.2 "Documentation" and "Supply chain" rows, and a deployed and verified Day 4.
+- Produces: Friday's deliverable, live and verified.
 
-- [ ] **Step 1: `.github/dependabot.yml`**
+- [ ] **Step 1: Secret key (user).** Walk the user through it in Hebrew:
+  1. In **Supabase → Project Settings → API Keys → Secret keys**, create a key named `vercel-api`.
+  2. In **Vercel → hours-tracker → Settings → Environment Variables**, add `SUPABASE_SECRET_KEY` with that key as the value, type *Sensitive*, environments Production + Preview.
 
-```yaml
-version: 2
-updates:
-  - package-ecosystem: npm
-    directory: /
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-```
+  It must never be pasted into the chat.
 
-- [ ] **Step 2: Dependency audit**
+- [ ] **Step 2: Push (ask first) and check the deployment.** Ask the user before `git push`. After the deploy is Ready (Vercel MCP `list_deployments` / `get_deployment`), run, if the user's network allows it, `curl -s -o /dev/null -w "%{http_code}" -X POST https://hours-tracker-seven-liart.vercel.app/api/delete-account`.
+  - Expected: `401` (the function runs and refuses requests without a token).
+  - A `500` or `404` means the function did not build or load. Check Vercel runtime logs (MCP `get_runtime_logs`) before changing anything.
 
-Run: `npm audit --omit=dev`
-Expected: `found 0 vulnerabilities`. If there are findings, record each one (package, severity, whether it is reachable) in SECURITY-PROCEDURE §8 and tell the user. Do not run `npm audit fix --force`.
-
-- [ ] **Step 3: `docs/security/DATABASE-DEFINITION.md`** (Hebrew; מסמך הגדרות מאגר, תקנה 2 לתקנות הגנת הפרטיות (אבטחת מידע), 2017). Required sections and facts:
-  1. **שם המאגר ותיאורו:** "כל שעה" (repo `hours-tracker`), a personal work-hours tracker with a labour-rights checker. Production URL `https://hours-tracker-seven-liart.vercel.app`.
-  2. **בעלת המאגר ואחראית אבטחה:** `OWNER_NAME` and `CONTACT_EMAIL`, the same values as `src/features/legal/contact.ts`.
-  3. **מטרות השימוש:** the same as the privacy page's "למה".
-  4. **סוגי המידע:** a table per Postgres table (`profiles`, `settings`, `time_entries`, `absences`, `audit_log`, `private.rate_limits`, Supabase `auth.*`), with the columns that hold personal data. Note that `absences.type = 'sick'` may count as health information ("מידע בעל רגישות מיוחדת" under Amendment 13).
-  5. **רמת אבטחה:** *בינונית*. This is conservative, because sick-leave dates may be health information. "Basic" would otherwise apply given the number of users. Then list the controls we implemented beyond it (from spec §3.2).
-  6. **מחזיקים / ספקי עיבוד:** Supabase (DB + Auth, Frankfurt, EU), Vercel (hosting + functions). Gmail and Stripe are listed as "planned, Day 5/6". The EU is a permitted transfer destination.
-  7. **מורשי גישה:** end users (own rows only, enforced by RLS). Administrator = the owner only, via Supabase/Vercel/GitHub dashboards, each with 2FA. Service key held only in Vercel env.
-  8. **זרימת מידע:** browser → Vercel (HTTPS) → Supabase. `/api` uses the secret key server-side.
-  9. **שמירה ומחיקה:** data kept until the account is deleted. Account deletion cascades. `audit_log` is kept ≥ 24 months (pseudonymous id, `actor` column).
-  10. **סיכונים עיקריים ומענה:** account takeover → password policy + 2FA + rate limits. Cross-user access → RLS + SQL isolation tests. Key leak → server-only key, rotation procedure (SECURITY-PROCEDURE). Data loss → JSON export (the Supabase Free plan has no downloadable backups: state this).
-  11. **Out of scope:** formal risk survey and external penetration test (spec §3.2).
-
-- [ ] **Step 4: `docs/security/SECURITY-PROCEDURE.md`** (Hebrew; נוהל אבטחת מידע, תקנה 4). Required sections:
-  1. **בקרת גישה:** user auth (email verification, password ≥ 10 chars with mixed classes, optional TOTP 2FA enforced in the DB once enrolled, and disabling it needs a fresh code). Admin access only through dashboards with 2FA.
-  2. **ניהול סודות:** where each secret lives (`SUPABASE_SECRET_KEY` in Vercel *Sensitive*; publishable key is public by design). Never in git or chat. **Rotation:** create a new secret key in Supabase → update Vercel → redeploy → revoke the old key.
-  3. **רישום ובקרה:** `audit_log` (insert/update/delete, actor user/system, users can only read their own rows). Auth logins in `auth.audit_log_entries` (persisted to the DB, Step 6). Review the logs monthly and after any incident.
-  4. **הגנת יישום:** security headers (`vercel.json`), CSP without inline scripts, zod validation on every `/api` input, fail-closed rate limits, bounded jsonb and text lengths in the DB.
-  5. **גיבוי ושחזור:** user-side JSON export/restore (with confirmation). Free-plan limitation stated.
-  6. **טיפול באירוע אבטחה:** contain (rotate keys, revoke sessions), assess, record. For a severe incident (אירוע אבטחה חמור), notify the Privacy Protection Authority (הרשות להגנת הפרטיות) as the regulations require, and inform affected users.
-  7. **ניהול שינויים:** every change via git with tests. `/security-review` before submission. Migrations versioned in `supabase/migrations`, SQL security tests in `supabase/tests` rerun after each migration.
-  8. **שרשרת אספקה:** Dependabot weekly, `npm audit --omit=dev` before each release. Record the result of Step 2 with its date.
-  9. **מגבלות ידועות:** leaked-password protection (HaveIBeenPwned) needs the Supabase Pro plan, so it is off and listed here. Gmail sender is `@gmail.com` (Day 5).
-  10. **סקירה תקופתית:** this procedure and DATABASE-DEFINITION are reviewed yearly or on any material change.
-
-- [ ] **Step 5: README and supabase/README**
-
-`README.md` "Authentication & data protection": replace the "Logins are captured… scheduled for the privacy work (Day 4)" sentence with the result of Step 6. Add bullets for account deletion (Settings → מחיקת חשבון; `POST /api/delete-account`), the public legal pages (`/privacy`, `/terms`, `/accessibility`), the brand "כל שעה" in the README title, rate limiting on `/api`, and links to `docs/security/DATABASE-DEFINITION.md` and `docs/security/SECURITY-PROCEDURE.md`.
-`supabase/README.md`: list `tests/hardening.sql` next to the other tests.
-
-- [ ] **Step 6: Dashboard settings (user)**
-
-Walk the user through these (in Hebrew):
-1. **Supabase → Authentication → Audit Logs**: turn on writing auth audit logs to the project database. In some dashboards this is a toggle named "Disable writing auth audit logs to project database", which must then be **off**.
-2. **Supabase → Project Settings → API Keys → Secret keys**: create a key named `vercel-api`. **Vercel → hours-tracker → Settings → Environment Variables**: add `SUPABASE_SECRET_KEY` = that key, type *Sensitive*, environments Production + Preview. Never paste it into the chat.
-
-- [ ] **Step 7: Commit docs**
-
-```bash
-npx prettier --write docs/security/DATABASE-DEFINITION.md docs/security/SECURITY-PROCEDURE.md README.md supabase/README.md .github/dependabot.yml
-git add docs/security .github/dependabot.yml README.md supabase/README.md
-git commit -m "docs(security): database definition, security procedure, Dependabot"
-```
-
-- [ ] **Step 8: Push (ask first) and check the deployment**
-
-Ask the user before `git push`. After the deploy is Ready (Vercel MCP `list_deployments` / `get_deployment`):
-- MCP `execute_sql`: `select count(*) from auth.audit_log_entries;`. Expected: > 0 after the user signs in once.
-- If the user's network allows it, run `curl -s -o /dev/null -w "%{http_code}" -X POST https://hours-tracker-seven-liart.vercel.app/api/delete-account`. Expected: `401` (the function runs and refuses requests without a token). A `500`/`404` means the function did not build or load. Check Vercel runtime logs (MCP `get_runtime_logs`) before changing anything.
-
-- [ ] **Step 9: End-to-end in production (user, with guidance)**
+- [ ] **Step 3: End-to-end in production (user, with guidance)**
 1. Signed out, open `/privacy`, `/terms` and `/accessibility`. Each shows the owner name and contact, and the footer links between them. The tab title is "כל שעה — כל שעה נחשבת". There are no console CSP errors.
 2. Sign-up screen: the consent shows "18 ומעלה", and its "תקנון" and "מדיניות הפרטיות" links each open in a new tab.
-3. On an account with 2FA: disabling 2FA with a wrong code is refused. With the right code it works (re-enable afterwards if wanted).
-4. Reports: choosing a non-JSON file shows the error. Choosing a real backup asks first. "ביטול" keeps the data.
-5. Create a throwaway account (`+deltest` Gmail alias), add one entry, Settings → מחיקת חשבון, type the email → the login screen appears. Signing in with that account fails.
-6. MCP `execute_sql` (read-only), with the deleted user's id from step 5 (taken from `audit_log` or before deletion):
+3. Create a throwaway account (`+deltest` Gmail alias) and add one entry. Then go to Settings → מחיקת חשבון and type the email. Expected: the login screen appears, and signing in with that account fails.
+4. Run MCP `execute_sql` (read-only) with the deleted user's id from step 3. Take the id before deleting, from `select id from auth.users where email = …`.
    ```sql
    select
      (select count(*) from auth.users where id = '<id>') as users,
      (select count(*) from public.time_entries where user_id = '<id>') as entries,
      (select count(*) from public.profiles where user_id = '<id>') as profiles,
-     (select count(*) from public.audit_log where user_id = '<id>' and actor = 'system' and action = 'delete') as system_deletes;
+     (select count(*) from public.audit_log where user_id = '<id>' and action = 'delete') as audit_deletes;
    ```
-   Expected: `users = 0, entries = 0, profiles = 0, system_deletes ≥ 2`.
-7. MCP `get_advisors` (security + performance): only `auth_leaked_password_protection` remains.
+   Expected: `users = 0, entries = 0, profiles = 0, audit_deletes ≥ 2`.
 
-Record the results in the ledger. Day 4 is done when all seven pass.
+Record the results in the ledger. Friday's plan is done when all four pass. Then write the rights-checker plan and start it, following spec §11.
+
+---
+
