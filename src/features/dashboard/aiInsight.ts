@@ -27,7 +27,12 @@ export interface InsightInput {
 
 export type InsightResult =
   | { ok: true; text: string }
-  | { ok: false; error: 'rate_limited' | 'unavailable' | 'network' | 'unauthorized' };
+  | {
+      ok: false;
+      error: 'rate_limited' | 'unavailable' | 'network' | 'unauthorized';
+      /** Server-provided detail, shown small to help diagnose. */
+      reason?: string;
+    };
 
 /** Days of each absence type that fall inside `month` (a partial day counts as a day). */
 function absenceDaysIn(month: string, absences: Absence[]): Record<AbsenceType, number> {
@@ -96,5 +101,10 @@ export async function requestInsight(input: InsightInput): Promise<InsightResult
   }
   if (res.status === 429) return { ok: false, error: 'rate_limited' };
   if (res.status === 401) return { ok: false, error: 'unauthorized' };
-  return { ok: false, error: 'unavailable' };
+  const body = (await res.json().catch(() => ({}))) as { reason?: unknown };
+  return {
+    ok: false,
+    error: 'unavailable',
+    reason: typeof body.reason === 'string' ? body.reason : `HTTP ${res.status}`,
+  };
 }

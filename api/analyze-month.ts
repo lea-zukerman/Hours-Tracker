@@ -116,11 +116,10 @@ export function createAnalyzeHandler(deps: AnalyzeDeps) {
       if (!text) return json(503, { error: 'unavailable' });
       return json(200, { text });
     } catch (err) {
-      console.error(
-        'analyze-month: provider failed:',
-        err instanceof Error ? err.message : 'unknown',
-      );
-      return json(503, { error: 'unavailable' });
+      const reason = (err instanceof Error ? err.message : 'unknown').slice(0, 160);
+      console.error('analyze-month: provider failed:', reason);
+      // The provider's own message (never the key) — shown small in the UI to diagnose.
+      return json(503, { error: 'unavailable', reason });
     }
   };
 }
@@ -150,7 +149,10 @@ function productionDeps(): AnalyzeDeps {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   const ai = new GoogleGenAI({ apiKey: geminiKey });
-  const model = process.env.GEMINI_MODEL || 'gemini-flash-latest';
+  // Free-tier model names change often: try the configured one, else a short fallback list.
+  const models = process.env.GEMINI_MODEL
+    ? [process.env.GEMINI_MODEL]
+    : ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-flash-lite-latest'];
 
   return {
     verifyUser: async (token) => {
@@ -159,12 +161,25 @@ function productionDeps(): AnalyzeDeps {
     },
     allow: allowInMemory,
     generate: async (prompt) => {
-      const response = await ai.models.generateContent({
-        model,
-        contents: prompt,
-        config: { systemInstruction: SYSTEM_INSTRUCTION, maxOutputTokens: 4096 }, // room for the model's own thinking
-      });
-      return response.text ?? '';
+      const failures: string[] = [];
+      for (const model of models) {
+        try {
+          const response = await ai.models.generateContent({
+            model,
+            contents: prompt,
+            // room for the model's own thinking before the answer
+            config: { systemInstruction: SYSTEM_INSTRUCTION, maxOutputTokens: 4096 },
+          });
+          const text = response.text ?? '';
+          if (text.trim()) return text;
+          failures.push(
+            `${model}: empty (${response.candidates?.[0]?.finishReason ?? 'no candidate'})`,
+          );
+        } catch (err) {
+          failures.push(`${model}: ${err instanceof Error ? err.message.slice(0, 80) : 'error'}`);
+        }
+      }
+      throw new Error(failures.join(' | '));
     },
   };
 }
@@ -175,7 +190,7 @@ export async function POST(request: Request): Promise<Response> {
     deps = productionDeps();
   } catch (err) {
     console.error('analyze-month:', err instanceof Error ? err.message : 'unknown');
-    return json(503, { error: 'unavailable' });
+    return json(503, { error: 'unavailable', reason: 'server configuration (env vars)' });
   }
   return createAnalyzeHandler(deps)(request);
 }

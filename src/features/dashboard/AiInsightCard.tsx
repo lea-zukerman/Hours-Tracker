@@ -41,15 +41,20 @@ export function AiInsightCard({
   const [pending, setPending] = useState(false);
   const [text, setText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reason, setReason] = useState<string | null>(null);
 
   async function run() {
     if (!summary || !settings) return;
     setPending(true);
     setError(null);
+    setReason(null);
     try {
       const result = await analyze(buildInsightInput(summary, entries, absences, settings, zone));
       if (result.ok) setText(result.text);
-      else setError(ERRORS[result.error]);
+      else {
+        setError(ERRORS[result.error]);
+        setReason(result.reason ?? null);
+      }
     } finally {
       setPending(false);
     }
@@ -67,6 +72,11 @@ export function AiInsightCard({
       {error && (
         <p role="alert" className="auth-error">
           {error}
+        </p>
+      )}
+      {reason && (
+        <p className="auth-hint" dir="ltr">
+          {reason}
         </p>
       )}
       <Button onClick={() => void run()} disabled={pending || !summary}>

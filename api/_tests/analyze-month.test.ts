@@ -80,7 +80,7 @@ describe('POST /api/analyze-month', () => {
     });
     const res = await handle(request(INPUT));
     expect(res.status).toBe(503);
-    expect(await res.json()).toEqual({ error: 'unavailable' });
+    expect(await res.json()).toEqual({ error: 'unavailable', reason: 'quota' });
   });
 });
 
