@@ -61,3 +61,118 @@ body {
   background: var(--accent);
   color: var(--accent-ink);
 }
+
+/* ---- Facelift (submission): warmer canvas, glass header, livelier cards ---- */
+:root {
+  --brand-1: #0e7c86;
+  --brand-2: #5b4fd6;
+  --brand-grad: linear-gradient(135deg, var(--brand-1), var(--brand-2));
+  --shadow-card: 0 1px 2px rgba(15, 31, 51, 0.04), 0 12px 32px rgba(30, 40, 90, 0.08);
+}
+
+body {
+  background:
+    radial-gradient(900px 520px at 100% -5%, rgba(14, 124, 134, 0.16), transparent 60%),
+    radial-gradient(800px 480px at -10% 20%, rgba(91, 79, 214, 0.12), transparent 60%),
+    radial-gradient(700px 400px at 60% 110%, rgba(242, 104, 44, 0.08), transparent 60%),
+    #eef1f7;
+  background-attachment: fixed;
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 20px;
+  padding: var(--space-3) var(--space-5);
+  box-shadow: 0 8px 28px rgba(30, 40, 90, 0.08);
+}
+.app-header h1 {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 1.7rem;
+  font-weight: 800;
+  background: var(--brand-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.app-header h1::before {
+  content: '⏱';
+  display: inline-grid;
+  place-items: center;
+  inline-size: 40px;
+  block-size: 40px;
+  border-radius: 12px;
+  background: var(--brand-grad);
+  color: #fff;
+  -webkit-text-fill-color: #fff;
+  font-size: 1.2rem;
+  box-shadow: 0 6px 16px rgba(91, 79, 214, 0.35);
+}
+.app-nav a.active {
+  background: var(--brand-grad);
+  box-shadow: 0 6px 16px rgba(14, 124, 134, 0.3);
+}
+
+.ht-card {
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 22px;
+}
+.ht-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(15, 31, 51, 0.05), 0 18px 44px rgba(30, 40, 90, 0.12);
+}
+.ht-card__title {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.ht-card__title::before {
+  content: '';
+  inline-size: 6px;
+  block-size: 1.1em;
+  border-radius: 3px;
+  background: var(--brand-grad);
+}
+
+.ht-btn {
+  border-radius: 12px;
+}
+.ht-btn--primary {
+  background: var(--brand-grad);
+  box-shadow: 0 6px 18px rgba(14, 124, 134, 0.28);
+}
+.ht-btn--primary:hover:not(:disabled) {
+  background: var(--brand-grad);
+  filter: brightness(1.08);
+}
+
+/* The AI card is the "wow" moment — give it its own glow. */
+.ai-card {
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(135deg, #0e7c86, #5b4fd6, #f2682c) border-box;
+  border: 2px solid transparent;
+  box-shadow: 0 16px 40px rgba(91, 79, 214, 0.18);
+}
+.ai-card .ht-card__title::before {
+  background: linear-gradient(180deg, #5b4fd6, #f2682c);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ht-card:hover {
+    transform: none;
+  }
+}
